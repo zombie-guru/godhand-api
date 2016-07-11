@@ -86,7 +86,7 @@ def upload_book(request):
         extractor_cls = bookextractor.from_filename(value.filename)
         book = Book.create(
             title='Untitled', f=value.file, extractor_cls=extractor_cls,
-            book_path=request.registry['godhand:book_path'],
+            books_path=request.registry['godhand:books_path'],
         )
     return prepare_book(book)
 

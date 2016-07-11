@@ -36,10 +36,10 @@ class Book(Base):
         back_populates='book')
 
     @classmethod
-    def create(cls, title, f, extractor_cls, book_path):
+    def create(cls, title, f, extractor_cls, books_path):
         book = super(Book, cls).create(title=title)
         DB.flush()
-        basedir = tempfile.mkdtemp(dir=book_path)
+        basedir = tempfile.mkdtemp(dir=books_path)
         extractor = extractor_cls(f, basedir)
         for page, mimetype in extractor.iter_pages():
             Page.create(book_id=book.id, path=page, mimetype=mimetype)

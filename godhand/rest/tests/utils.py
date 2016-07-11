@@ -15,11 +15,11 @@ class ApiTest(unittest.TestCase):
         from godhand.models import DB as db
         from godhand.rest import main
         base_path = self.use_fixture(TempDir()).path
-        self.book_path = book_path = os.path.join(base_path, 'books')
-        os.makedirs(book_path)
+        self.books_path = books_path = os.path.join(base_path, 'books')
+        os.makedirs(books_path)
         sqlalchemy_url = 'sqlite:///{}'.format(os.path.join(base_path, 'db'))
         self.api = TestApp(main(
-            {}, book_path=book_path, sqlalchemy_url=sqlalchemy_url))
+            {}, books_path=books_path, sqlalchemy_url=sqlalchemy_url))
         self.db = db
 
     def tearDown(self):
