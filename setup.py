@@ -16,11 +16,9 @@ setup(
     zip_safe=False,
     install_requires=[
         'cornice',
+        'couchdb',
         'colander',
         'pyramid',
-        'pyramid_tm',
-        'sqlalchemy',
-        'zope.sqlalchemy',
     ],
     entry_points={
         'paste.app_factory': [
@@ -32,6 +30,7 @@ setup(
     extras_require={
         'tests': [
             'fixtures',
+            'mock',
             'webtest',
         ],
         'docs': [

@@ -54,7 +54,11 @@ class BookExtractor(object):
                     mimetype = filename_to_mimetype(page)
                 except ValueError:
                     continue
-                yield os.path.join(root, page), mimetype
+                relpath = os.path.relpath(
+                    os.path.join(root, page),
+                    self.path,
+                )
+                yield relpath, mimetype
 
 
 class CbtBookExtractor(BookExtractor):

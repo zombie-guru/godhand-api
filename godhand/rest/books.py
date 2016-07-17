@@ -1,26 +1,20 @@
+import os
+import tempfile
+
 from cornice import Service
-from pyramid.response import FileResponse
 from pyramid.httpexceptions import HTTPNotFound
 import colander as co
+import couchdb.http
 
 from godhand import bookextractor
-from godhand.models import DB
-from godhand.models import Book
-from godhand.models import Page
 from .utils import PaginationSchema
 from .utils import paginate_query
-from .utils import sqlalchemy_path_schemanode
 
 
 class BookPathSchema(co.MappingSchema):
-    book = sqlalchemy_path_schemanode(Book)
-
-
-class BookPagePathSchema(BookPathSchema):
-    page = co.SchemaNode(
-        co.Integer(),
+    book = co.SchemaNode(
+        co.String(),
         location='path',
-        validator=co.Range(min=0),
     )
 
 
@@ -33,24 +27,6 @@ book = Service(
     path='/books/{book}',
     schema=BookPathSchema,
 )
-book_pages = Service(
-    name='book_pages',
-    path='/books/{book}/pages',
-    schema=BookPathSchema,
-)
-book_page = Service(
-    name='books_page',
-    path='/books/{book}/pages/{page}',
-    schema=BookPagePathSchema,
-)
-
-
-def prepare_book(book):
-    return {
-        'id': book.id,
-        'title': book.title,
-        'pages': [x.id for x in book.pages],
-    }
 
 
 def prepare_page(page):
@@ -68,71 +44,72 @@ def get_books(request):
 
         {
             "books": [
-                {
-                    "id": 1,
-                    "title": "Beserk",
-                    "pages": [1, 2, 3]
-                }
-            ]
+                {"id": "myid", "title": "My Book Title"}
+            ],
+            "offset": 0,
+            "total": 1
         }
+
     """
-    query = DB.query(Book)
-    return paginate_query(request, query, prepare_book, 'books')
+    query = '''function(doc) {
+        emit({
+            id: doc._id,
+            title: doc.title
+        })
+    }
+    '''
+    obj = paginate_query(request, query, 'books')
+    return obj
 
 
 @books.post(content_type=('multipart/form-data',))
-def upload_book(request):
+def upload_books(request):
+    """ Create book and return unique ids.
+    """
+    book_ids = []
     for key, value in request.POST.items():
+        basedir = tempfile.mkdtemp(dir=request.registry['godhand:books_path'])
         extractor_cls = bookextractor.from_filename(value.filename)
-        book = Book.create(
-            title='Untitled', f=value.file, extractor_cls=extractor_cls,
-            books_path=request.registry['godhand:books_path'],
-        )
-    return prepare_book(book)
+        extractor = extractor_cls(value.file, basedir)
+        book = {
+            'title': 'Untitled',
+            'path': basedir,
+            'pages': [{
+                'path': page,
+            } for page, mimetype in extractor.iter_pages()]
+        }
+        _id, _rev = request.registry['godhand:db'].save(book)
+        book_ids.append(_id)
+    return {'books': book_ids}
 
 
 @book.get()
 def get_book(request):
-    return prepare_book(request.validated['book'])
+    """ Get a book by ID.
 
-
-class GetBookPagesSchema(BookPathSchema, PaginationSchema):
-    pass
-
-
-@book_pages.get(schema=GetBookPagesSchema)
-def get_book_pages(request):
-    """ Get pages for a book.
-
-    .. source-code:: js
+    .. code-block:: js
 
         {
+            "id": "myuniqueid",
+            "title": "My Book Title",
             "pages": [
-                {"id": 1, "mimetype": "images/png"}
+                {"url": "http://url.to.page0.jpg"}
             ]
         }
-    """
-    book = request.validated['book']
-    query = DB.query(Page).filter(Page.book_id == book.id).order_by(Page.id)
-    return paginate_query(request, query, prepare_page, 'pages')
 
-
-@book_page.get(accept=('images/*',))
-def get_book_page(request):
-    """ Get a book page content by offset. Starts at 0.
     """
-    book = request.validated['book']
-    page = DB.query(
-        Page
-    ).filter(
-        Page.book_id == book.id
-    ).order_by(
-        Page.id
-    ).offset(request.validated['page']).first()
-    if page is None:
-        raise HTTPNotFound()
-    return FileResponse(
-        path=page.path,
-        request=request,
-        content_type=page.mimetype,
-    )
+    book_id = request.validated['book']
+    db = request.registry['godhand:db']
+    try:
+        doc = db[book_id]
+    except couchdb.http.ResourceNotFound:
+        raise HTTPNotFound(book_id)
+    else:
+        return {
+            'id': doc['_id'],
+            'title': doc['title'],
+            'pages': [{
+                'url': request.static_url(
+                    os.path.join(doc['path'], x['path'])),
+            } for x in doc['pages']]
+        }
