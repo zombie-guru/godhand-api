@@ -109,3 +109,27 @@ def get_volume(request):
                     os.path.join(doc['path'], x['path'])),
             } for x in doc['pages']]
         }
+
+
+class PutVolumeSchema(VolumePathSchema):
+    volume_number = co.SchemaNode(
+        co.Integer(), validator=co.Range(min=0), missing=co.drop)
+
+
+@volume.put(schema=PutVolumeSchema)
+def update_volume_meta(request):
+    """ Update volume metadata.
+    """
+    v = request.validated
+    volume_id = v['volume']
+    db = request.registry['godhand:db']
+    try:
+        doc = db[volume_id]
+    except couchdb.http.ResourceNotFound:
+        raise HTTPNotFound(volume_id)
+    for key in ('volume_number',):
+        try:
+            doc[key] = v[key]
+        except KeyError:
+            pass
+    db.save(doc)

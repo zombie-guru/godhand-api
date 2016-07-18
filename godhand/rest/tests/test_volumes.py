@@ -40,6 +40,12 @@ class TestEmpty(ApiTest):
             self.assertEquals(
                 'content of page{:x}.jpg'.format(n_page).encode('utf-8'),
                 response.body)
+        # update meta data
+        self.api.put_json('/volumes/{}'.format(volume_id), {
+            'volume_number': 17
+        })
+        response = self.api.get('/volumes/{}'.format(volume_id)).json_body
+        self.assertEquals(response['volume_number'], 17)
         # create a series
         response = self.api.post_json(
             '/series', {
