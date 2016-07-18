@@ -1,4 +1,5 @@
 import os
+import re
 import tempfile
 
 from cornice import Service
@@ -66,9 +67,14 @@ def upload_volume(request):
         basedir = tempfile.mkdtemp(dir=request.registry['godhand:books_path'])
         extractor_cls = bookextractor.from_filename(value.filename)
         extractor = extractor_cls(value.file, basedir)
+        # try to infer volume number
+        try:
+            volume_number = int(re.findall('\d+', value.filename)[-1])
+        except IndexError:
+            volume_number = None
         volume = {
             'type': 'volume',
-            'volume_number': None,
+            'volume_number': volume_number,
             'path': basedir,
             'pages': [{
                 'path': page,

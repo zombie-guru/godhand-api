@@ -14,20 +14,20 @@ class TestEmpty(ApiTest):
         with tmp_cbt(['page{:x}.jpg'.format(x) for x in range(15)]) as f:
             response = self.api.post(
                 '/volumes',
-                upload_files=[('input', 'volume.cbt', f.read())],
+                upload_files=[('input', 'volume-007.cbt', f.read())],
                 content_type='multipart/form-data',
             ).json_body
         self.assertEquals(len(response['volumes']), 1)
         volume_id = response['volumes'][0]
         # get all volumes
         expected = {
-            'volumes': [{'id': volume_id, 'volume_number': None}],
+            'volumes': [{'id': volume_id, 'volume_number': 7}],
             'offset': 0, 'total': 1,
         }
         response = self.api.get('/volumes').json_body
         self.assertEquals(expected, response)
         # Get the volume by the key
-        expected = {'id': volume_id, 'volume_number': None}
+        expected = {'id': volume_id, 'volume_number': 7}
         response = self.api.get('/volumes/{}'.format(volume_id)).json_body
         pages = response.pop('pages')
         self.assertEquals(expected, response)
