@@ -52,10 +52,12 @@ def get_books(request):
 
     """
     query = '''function(doc) {
-        emit({
-            id: doc._id,
-            title: doc.title
-        })
+        if (doc.type == "book") {
+            emit({
+                id: doc._id,
+                title: doc.title
+            })
+        }
     }
     '''
     obj = paginate_query(request, query, 'books')
@@ -72,6 +74,7 @@ def upload_books(request):
         extractor_cls = bookextractor.from_filename(value.filename)
         extractor = extractor_cls(value.file, basedir)
         book = {
+            'type': 'book',
             'title': 'Untitled',
             'path': basedir,
             'pages': [{
