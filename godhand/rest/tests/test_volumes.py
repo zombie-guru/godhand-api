@@ -5,34 +5,30 @@ from .utils import tmp_cbt
 
 
 class TestEmpty(ApiTest):
-    def test_create_book(self):
-        # retrieve books
-        expected = {'books': [], 'offset': 0, 'total': 0}
-        response = self.api.get('/books').json_body
+    def test_create_volume(self):
+        # retrieve volumes
+        expected = {'volumes': [], 'offset': 0, 'total': 0}
+        response = self.api.get('/volumes').json_body
         self.assertEquals(expected, response)
-        # create a book
+        # create a volume
         with tmp_cbt(['page{:x}.jpg'.format(x) for x in range(15)]) as f:
             response = self.api.post(
-                '/books',
-                upload_files=[('input', 'book.cbt', f.read())],
+                '/volumes',
+                upload_files=[('input', 'volume.cbt', f.read())],
                 content_type='multipart/form-data',
             ).json_body
-        self.assertEquals(len(response['books']), 1)
-        book_id = response['books'][0]
-        # get all books
+        self.assertEquals(len(response['volumes']), 1)
+        volume_id = response['volumes'][0]
+        # get all volumes
         expected = {
-            'books': [{'id': book_id, 'title': 'Untitled'}],
-            'offset': 0,
-            'total': 1,
+            'volumes': [{'id': volume_id, 'volume_number': None}],
+            'offset': 0, 'total': 1,
         }
-        response = self.api.get('/books').json_body
+        response = self.api.get('/volumes').json_body
         self.assertEquals(expected, response)
-        # Get the book by the key
-        expected = {
-            'id': book_id,
-            'title': 'Untitled',
-        }
-        response = self.api.get('/books/{}'.format(book_id)).json_body
+        # Get the volume by the key
+        expected = {'id': volume_id, 'volume_number': None}
+        response = self.api.get('/volumes/{}'.format(volume_id)).json_body
         pages = response.pop('pages')
         self.assertEquals(expected, response)
         self.assertEquals(
@@ -44,7 +40,6 @@ class TestEmpty(ApiTest):
             self.assertEquals(
                 'content of page{:x}.jpg'.format(n_page).encode('utf-8'),
                 response.body)
-        # add to a series
         # create a series
         response = self.api.post_json(
             '/series', {
@@ -55,17 +50,18 @@ class TestEmpty(ApiTest):
         ).json_body
         self.assertEquals(len(response['series']), 1)
         series_id = response['series'][0]
+        # add to series
         self.api.put_json(
-            '/series/{}/books/{}'.format(series_id, book_id)
+            '/series/{}/volumes/{}'.format(series_id, volume_id)
         )
         expected = {
             'id': series_id,
             'name': 'Berserk',
             'description': 'My Description',
             'genres': ['action', 'meme'],
-            'books': [{
-                'id': book_id,
-                'url': 'http://localhost/books/{}'.format(book_id)
+            'volumes': [{
+                'id': volume_id,
+                'url': 'http://localhost/volumes/{}'.format(volume_id)
             }],
         }
         response = self.api.get('/series/{}'.format(series_id)).json_body

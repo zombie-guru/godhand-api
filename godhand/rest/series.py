@@ -11,9 +11,9 @@ from .utils import paginate_query
 
 series_collection = Service(name='series_collection', path='/series')
 series = Service(name='series', path='/series/{series}')
-series_books = Service(
-    name='series_books',
-    path='/series/{series}/books/{book}',
+series_volume = Service(
+    name='series_volume',
+    path='/series/{series}/volumes/{volume}',
 )
 
 
@@ -83,10 +83,10 @@ def create_series(request):
         'name': request.validated['name'],
         'description': request.validated['description'],
         'genres': request.validated['genres'],
-        'books': [],
+        'volumes': [],
     })
     return {
-        "series": [_id],
+        'series': [_id],
     }
 
 
@@ -109,7 +109,7 @@ def get_series(request):
                 "dark fantasy",
                 "tragedy"
             ],
-            "books": []
+            "volumes": []
         }
 
     """
@@ -125,20 +125,20 @@ def get_series(request):
             'name': doc['name'],
             'description': doc['description'],
             'genres': doc['genres'],
-            'books': [{
+            'volumes': [{
                 'id': x,
-                'url': route_url('book', request, book=x),
-            } for x in doc['books']],
+                'url': route_url('volume', request, volume=x),
+            } for x in doc['volumes']],
         }
 
 
-class PutSeriesBooks(co.MappingSchema):
+class PutSeriesVolume(co.MappingSchema):
     series = co.SchemaNode(co.String(), location='path')
-    book = co.SchemaNode(co.String(), location='path')
+    volume = co.SchemaNode(co.String(), location='path')
 
 
-@series_books.put(schema=PutSeriesBooks)
-def add_book_to_series(request):
+@series_volume.put(schema=PutSeriesVolume)
+def add_volume_to_series(request):
     db = request.registry['godhand:db']
     v = request.validated
     try:
@@ -146,8 +146,8 @@ def add_book_to_series(request):
     except couchdb.http.ResourceNotFound:
         raise HTTPNotFound(v['series'])
     try:
-        book = db[v['book']]
+        volume = db[v['volume']]
     except couchdb.http.ResourceNotFound:
         raise HTTPBadRequest
-    series['books'].append(book.id)
+    series['volumes'].append(volume.id)
     db[v['series']] = series

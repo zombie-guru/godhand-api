@@ -36,7 +36,7 @@ class TestEmpty(ApiTest):
             'name': 'Berserk',
             'description': 'My Description',
             'genres': ['action', 'meme'],
-            'books': [],
+            'volumes': [],
         }
         response = self.api.get('/series/{}'.format(series_id)).json_body
         self.assertEquals(expected, response)

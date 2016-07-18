@@ -11,40 +11,33 @@ from .utils import PaginationSchema
 from .utils import paginate_query
 
 
-class BookPathSchema(co.MappingSchema):
-    book = co.SchemaNode(
-        co.String(),
-        location='path',
-    )
+class VolumePathSchema(co.MappingSchema):
+    volume = co.SchemaNode(co.String(), location='path')
 
 
-books = Service(
-    name='books',
-    path='/books',
+volumes = Service(
+    name='volumes',
+    path='/volumes',
 )
-book = Service(
-    name='book',
-    path='/books/{book}',
-    schema=BookPathSchema,
+volume = Service(
+    name='volume',
+    path='/volumes/{volume}',
+    schema=VolumePathSchema,
 )
 
 
-def prepare_page(page):
-    return {
-        'id': page.id,
-        'mimetype': page.mimetype,
-    }
-
-
-@books.get(schema=PaginationSchema)
-def get_books(request):
-    """ Get all books.
+@volumes.get(schema=PaginationSchema)
+def get_volumes(request):
+    """ Get all volumes.
 
     .. source-code:: js
 
         {
-            "books": [
-                {"id": "myid", "title": "My Book Title"}
+            "volumes": [
+                {
+                    "id": "myid",
+                    "volume_number": 0,
+                }
             ],
             "offset": 0,
             "total": 1
@@ -52,65 +45,65 @@ def get_books(request):
 
     """
     query = '''function(doc) {
-        if (doc.type == "book") {
+        if (doc.type == "volume") {
             emit({
                 id: doc._id,
-                title: doc.title
+                volume_number: doc.volume_number
             })
         }
     }
     '''
-    obj = paginate_query(request, query, 'books')
+    obj = paginate_query(request, query, 'volumes')
     return obj
 
 
-@books.post(content_type=('multipart/form-data',))
-def upload_books(request):
-    """ Create book and return unique ids.
+@volumes.post(content_type=('multipart/form-data',))
+def upload_volume(request):
+    """ Create volume and return unique ids.
     """
-    book_ids = []
+    volume_ids = []
     for key, value in request.POST.items():
         basedir = tempfile.mkdtemp(dir=request.registry['godhand:books_path'])
         extractor_cls = bookextractor.from_filename(value.filename)
         extractor = extractor_cls(value.file, basedir)
-        book = {
-            'type': 'book',
-            'title': 'Untitled',
+        volume = {
+            'type': 'volume',
+            'volume_number': None,
             'path': basedir,
             'pages': [{
                 'path': page,
             } for page, mimetype in extractor.iter_pages()]
         }
-        _id, _rev = request.registry['godhand:db'].save(book)
-        book_ids.append(_id)
-    return {'books': book_ids}
+        _id, _rev = request.registry['godhand:db'].save(volume)
+        volume_ids.append(_id)
+    return {'volumes': volume_ids}
 
 
-@book.get()
-def get_book(request):
-    """ Get a book by ID.
+@volume.get()
+def get_volume(request):
+    """ Get a volume by ID.
 
     .. code-block:: js
 
         {
             "id": "myuniqueid",
-            "title": "My Book Title",
+            "volume_number": 0,
             "pages": [
                 {"url": "http://url.to.page0.jpg"}
             ]
         }
 
     """
-    book_id = request.validated['book']
+    volume_id = request.validated['volume']
     db = request.registry['godhand:db']
     try:
-        doc = db[book_id]
+        doc = db[volume_id]
     except couchdb.http.ResourceNotFound:
-        raise HTTPNotFound(book_id)
+        raise HTTPNotFound(volume_id)
     else:
         return {
             'id': doc['_id'],
-            'title': doc['title'],
+            'volume_number': doc['volume_number'],
             'pages': [{
                 'url': request.static_url(
                     os.path.join(doc['path'], x['path'])),
