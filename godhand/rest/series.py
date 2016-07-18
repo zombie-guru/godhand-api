@@ -1,7 +1,6 @@
 from cornice import Service
 from pyramid.httpexceptions import HTTPBadRequest
 from pyramid.httpexceptions import HTTPNotFound
-from pyramid.url import route_url
 import colander as co
 import couchdb.http
 
@@ -125,11 +124,25 @@ def get_series(request):
             'name': doc['name'],
             'description': doc['description'],
             'genres': doc['genres'],
-            'volumes': [{
-                'id': x,
-                'url': route_url('volume', request, volume=x),
-            } for x in doc['volumes']],
+            'volumes': list(filter(
+                lambda x: x is not None,
+                (render_volume(request, x) for x in doc['volumes'])
+            )),
         }
+
+
+def render_volume(request, volume_id):
+    db = request.registry['godhand:db']
+    try:
+        doc = db[volume_id]
+    except couchdb.http.ResourceNotFound:
+        return None
+    if doc['type'] != 'volume':
+        return None
+    return {
+        'id': doc['_id'],
+        'volume_number': doc['volume_number'],
+    }
 
 
 class PutSeriesVolume(co.MappingSchema):

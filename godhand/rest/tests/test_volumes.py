@@ -67,7 +67,7 @@ class TestEmpty(ApiTest):
             'genres': ['action', 'meme'],
             'volumes': [{
                 'id': volume_id,
-                'url': 'http://localhost/volumes/{}'.format(volume_id)
+                'volume_number': 17,
             }],
         }
         response = self.api.get('/series/{}'.format(series_id)).json_body
