@@ -4,6 +4,8 @@ from pyramid.httpexceptions import HTTPNotFound
 import colander as co
 import couchdb.http
 
+from ..opendata import NoResultsForUri
+from ..opendata import load_manga_resource
 from .utils import PaginationSchema
 from .utils import paginate_query
 
@@ -27,6 +29,10 @@ def get_series_collection(request):
                 "id": "myseriesid",
                 "name": "Berserk",
                 "description": "Berserk is a series written by Kentaro Miura.",
+                "dbpedia_uri": "http://dbpedia.org/resource/Berserk_(manga)",
+                "author": "Kentaro Miura",
+                "magazine": "Young Animal",
+                "number_of_volumes": 38,
                 "genre": [
                     "action",
                     "dark fantasy",
@@ -42,7 +48,11 @@ def get_series_collection(request):
                 id: doc._id,
                 name: doc.name,
                 description: doc.description,
-                genres: doc.genres
+                genres: doc.genres,
+                dbpedia_uri: doc.dbpedia_uri,
+                author: doc.author,
+                magazine: doc.magazine,
+                number_of_volumes: doc.number_of_volumes
             })
         }
     }
@@ -51,10 +61,17 @@ def get_series_collection(request):
 
 
 class PostSeriesCollectionSchema(co.MappingSchema):
-    name = co.SchemaNode(co.String())
-    description = co.SchemaNode(co.String())
+    uri = co.SchemaNode(
+        co.String(), validator=co.url,
+        description='Create from RDF resource of rdf:type dbo:Manga.',
+        missing=None)
+    name = co.SchemaNode(co.String(), missing=None)
+    description = co.SchemaNode(co.String(), missing=None)
+    author = co.SchemaNode(co.String(), missing=None)
+    magazine = co.SchemaNode(co.String(), missing=None)
+    number_of_volumes = co.SchemaNode(co.String(), missing=None)
 
-    @co.instantiate()
+    @co.instantiate(missing=None)
     class genres(co.SequenceSchema):
         genre = co.SchemaNode(co.String())
 
@@ -68,6 +85,10 @@ def create_series(request):
         {
             "name": "Berserk",
             "description": "Berserk is a series written by Kentaro Miura.",
+            "dbpedia_uri": "http://dbpedia.org/resource/Berserk_(manga)",
+            "author": "Kentaro Miura",
+            "magazine": "Young Animal",
+            "number_of_volumes": 38,
             "genres": [
                 "action",
                 "dark fantasy",
@@ -76,14 +97,38 @@ def create_series(request):
         }
 
     """
+    v = request.validated
+    if v['uri']:
+        try:
+            doc = load_manga_resource(v['uri'])
+        except NoResultsForUri:
+            raise HTTPBadRequest('No results found for URI: {}'.format(
+                v['uri']))
+        keys = (
+            'name', 'description', 'author', 'magazine',
+            'number_of_volumes',
+        )
+        for key in keys:
+            try:
+                doc[key] = doc[key][0]
+            except IndexError:
+                doc[key] = None
+        doc['genres'] = doc.pop('genre')
+        doc['dbpedia_uri'] = v['uri']
+    else:
+        doc = {
+            'name': v['name'],
+            'description': v['description'],
+            'genres': v['genres'] if v['genres'] else list(),
+            'author': v['author'],
+            'magazine': v['magazine'],
+            'number_of_volumes': v['number_of_volumes'],
+            'dbpedia_uri': None,
+        }
+    doc['type'] = 'series'
+    doc['volumes'] = []
     db = request.registry['godhand:db']
-    _id, _rev = db.save({
-        'type': 'series',
-        'name': request.validated['name'],
-        'description': request.validated['description'],
-        'genres': request.validated['genres'],
-        'volumes': [],
-    })
+    _id, _rev = db.save(doc)
     return {
         'series': [_id],
     }
@@ -103,6 +148,10 @@ def get_series(request):
             "id": "myid",
             "name": "Berserk",
             "description": "My description",
+            "dbpedia_uri": "http://dbpedia.org/resource/Berserk_(manga)",
+            "author": "Kentaro Miura",
+            "magazine": "Young Animal",
+            "number_of_volumes": 38,
             "genres": [
                 "action",
                 "dark fantasy",
@@ -123,6 +172,10 @@ def get_series(request):
             'id': doc['_id'],
             'name': doc['name'],
             'description': doc['description'],
+            'dbpedia_uri': doc['dbpedia_uri'],
+            'author': doc['author'],
+            'magazine': doc['magazine'],
+            'number_of_volumes': doc['number_of_volumes'],
             'genres': doc['genres'],
             'volumes': list(filter(
                 lambda x: x is not None,
@@ -152,6 +205,8 @@ class PutSeriesVolume(co.MappingSchema):
 
 @series_volume.put(schema=PutSeriesVolume)
 def add_volume_to_series(request):
+    """ Add a volume to a series.
+    """
     db = request.registry['godhand:db']
     v = request.validated
     try:

@@ -31,7 +31,7 @@ volume = Service(
 def get_volumes(request):
     """ Get all volumes.
 
-    .. source-code:: js
+    .. code-block:: js
 
         {
             "volumes": [
@@ -119,7 +119,7 @@ def get_volume(request):
 
 class PutVolumeSchema(VolumePathSchema):
     volume_number = co.SchemaNode(
-        co.Integer(), validator=co.Range(min=0), missing=co.drop)
+        co.Integer(), validator=co.Range(min=0), missing=None)
 
 
 @volume.put(schema=PutVolumeSchema)
