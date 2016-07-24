@@ -52,6 +52,10 @@ class TestEmpty(ApiTest):
                 'name': 'Berserk',
                 'description': 'My Description',
                 'genres': ['action', 'meme'],
+                'dbpedia_uri': None,
+                'author': None,
+                'magazine': None,
+                'number_of_volumes': None,
             }
         ).json_body
         self.assertEquals(len(response['series']), 1)
@@ -69,6 +73,10 @@ class TestEmpty(ApiTest):
                 'id': volume_id,
                 'volume_number': 17,
             }],
+            'dbpedia_uri': None,
+            'author': None,
+            'magazine': None,
+            'number_of_volumes': None,
         }
         response = self.api.get('/series/{}'.format(series_id)).json_body
         self.assertEquals(expected, response)

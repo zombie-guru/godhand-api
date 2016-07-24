@@ -1,5 +1,3 @@
-import urllib.parse
-
 from cornice import Service
 from pyramid.httpexceptions import HTTPBadRequest
 from pyramid.httpexceptions import HTTPNotFound
@@ -31,6 +29,10 @@ def get_series_collection(request):
                 "id": "myseriesid",
                 "name": "Berserk",
                 "description": "Berserk is a series written by Kentaro Miura.",
+                "dbpedia_uri": "http://dbpedia.org/resource/Berserk_(manga)",
+                "author": "Kentaro Miura",
+                "magazine": "Young Animal",
+                "number_of_volumes": 38,
                 "genre": [
                     "action",
                     "dark fantasy",
@@ -46,7 +48,11 @@ def get_series_collection(request):
                 id: doc._id,
                 name: doc.name,
                 description: doc.description,
-                genres: doc.genres
+                genres: doc.genres,
+                dbpedia_uri: doc.dbpedia_uri,
+                author: doc.author,
+                magazine: doc.magazine,
+                number_of_volumes: doc.number_of_volumes
             })
         }
     }
@@ -61,6 +67,9 @@ class PostSeriesCollectionSchema(co.MappingSchema):
         missing=None)
     name = co.SchemaNode(co.String(), missing=None)
     description = co.SchemaNode(co.String(), missing=None)
+    author = co.SchemaNode(co.String(), missing=None)
+    magazine = co.SchemaNode(co.String(), missing=None)
+    number_of_volumes = co.SchemaNode(co.String(), missing=None)
 
     @co.instantiate(missing=None)
     class genres(co.SequenceSchema):
@@ -76,6 +85,10 @@ def create_series(request):
         {
             "name": "Berserk",
             "description": "Berserk is a series written by Kentaro Miura.",
+            "dbpedia_uri": "http://dbpedia.org/resource/Berserk_(manga)",
+            "author": "Kentaro Miura",
+            "magazine": "Young Animal",
+            "number_of_volumes": 38,
             "genres": [
                 "action",
                 "dark fantasy",
@@ -88,24 +101,29 @@ def create_series(request):
     if v['uri']:
         try:
             doc = load_manga_resource(v['uri'])
-            keys = (
-                'name', 'description', 'author', 'magazine',
-                'number_of_volumes',
-            )
-            for key in keys:
-                try:
-                    doc[key] = doc[key][0]
-                except IndexError:
-                    doc[key] = None
-            doc['genres'] = doc.pop('genre')
         except NoResultsForUri:
             raise HTTPBadRequest('No results found for URI: {}'.format(
                 v['uri']))
+        keys = (
+            'name', 'description', 'author', 'magazine',
+            'number_of_volumes',
+        )
+        for key in keys:
+            try:
+                doc[key] = doc[key][0]
+            except IndexError:
+                doc[key] = None
+        doc['genres'] = doc.pop('genre')
+        doc['dbpedia_uri'] = v['uri']
     else:
         doc = {
             'name': v['name'],
             'description': v['description'],
             'genres': v['genres'] if v['genres'] else list(),
+            'author': v['author'],
+            'magazine': v['magazine'],
+            'number_of_volumes': v['number_of_volumes'],
+            'dbpedia_uri': None,
         }
     doc['type'] = 'series'
     doc['volumes'] = []
@@ -130,6 +148,10 @@ def get_series(request):
             "id": "myid",
             "name": "Berserk",
             "description": "My description",
+            "dbpedia_uri": "http://dbpedia.org/resource/Berserk_(manga)",
+            "author": "Kentaro Miura",
+            "magazine": "Young Animal",
+            "number_of_volumes": 38,
             "genres": [
                 "action",
                 "dark fantasy",
@@ -150,6 +172,10 @@ def get_series(request):
             'id': doc['_id'],
             'name': doc['name'],
             'description': doc['description'],
+            'dbpedia_uri': doc['dbpedia_uri'],
+            'author': doc['author'],
+            'magazine': doc['magazine'],
+            'number_of_volumes': doc['number_of_volumes'],
             'genres': doc['genres'],
             'volumes': list(filter(
                 lambda x: x is not None,
