@@ -13,6 +13,7 @@ from fixtures import TempDir
 from webtest import TestApp
 
 
+HERE = os.path.dirname(__file__)
 BUILDOUT_DIR = os.environ['BUILDOUT_DIRECTORY']
 BUILDOUT_BIN_DIRECTORY = os.environ['BUILDOUT_BIN_DIRECTORY']
 LOG = logging.getLogger('tests')
@@ -39,6 +40,8 @@ class AppTestFixture(Fixture):
         with SpooledTemporaryFile() as f:
             check_call((
                 os.path.join(BUILDOUT_BIN_DIRECTORY, 'docker-compose'),
+                '-f', os.path.join(HERE, 'docker-compose.yml'),
+                '--project', 'testing',
                 ) + args, cwd=BUILDOUT_DIR, stderr=f, stdout=f)
             f.flush()
             f.seek(0)
