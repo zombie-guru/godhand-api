@@ -5,9 +5,9 @@ setup(
     version=0.1,
     description='godhand',
     classifiers=[],
-    keywords="",
-    author='',
-    author_email='',
+    keywords='',
+    author='Geoffrey Chan',
+    author_email='geoffrey@zombie.guru',
     url='',
     packages=find_packages(),
     package_data={
