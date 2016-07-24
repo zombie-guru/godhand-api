@@ -2,6 +2,7 @@
 /bin/
 /build/
 /develop-eggs/
+/dist/
 /eggs/
 /parts/
 /var/

@@ -3,5 +3,12 @@ db:
   environment:
     COUCHDB_USER: couchdb
     COUCHDB_PASSWORD: mypassword
+api:
+  image: zombieguru/godhand:latest
+  environment:
+    GODHAND_COUCHDB_URL: http://couchdb:mypassword@db:5984
+    GODHAND_BOOKS_PATH: var/books
+  links:
+    - db
   ports:
-    - 8001:5984
+    - 7764:7764
