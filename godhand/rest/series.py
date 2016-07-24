@@ -205,6 +205,8 @@ class PutSeriesVolume(co.MappingSchema):
 
 @series_volume.put(schema=PutSeriesVolume)
 def add_volume_to_series(request):
+    """ Add a volume to a series.
+    """
     db = request.registry['godhand:db']
     v = request.validated
     try:
