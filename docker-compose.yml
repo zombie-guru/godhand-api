@@ -7,7 +7,6 @@ api:
   image: zombieguru/godhand:latest
   environment:
     GODHAND_COUCHDB_URL: http://couchdb:mypassword@db:5984
-    GODHAND_BOOKS_PATH: var/books
   links:
     - db
   ports:

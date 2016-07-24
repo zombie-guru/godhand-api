@@ -1,15 +1,11 @@
-FROM ubuntu:trusty
-COPY dist/ /target/dist
-COPY app.ini /target/
-COPY requirements.txt /target/
+FROM python:3.5.2
+COPY dist/godhand-*-py3-*.whl app.ini requirements.txt /target/
 WORKDIR /target
-RUN apt-get update && \
-  apt-get install -y python3 python-virtualenv && \
-  rm -rf /var/lib/apt/lists/* && \
-  virtualenv --python=python3 env && \
-  env/bin/pip install dist/godhand-*-py3-*.whl && \
-  env/bin/pip install -r requirements.txt && \
-  mkdir -p var/books
+RUN pip install godhand-*-py3-*.whl && \
+  pip install -r requirements.txt && \
+  mkdir -p var/books && \
+  rm godhand-*-py3-*.whl
+ENV GODHAND_BOOKS_PATH /target/var/books
 VOLUME /target/var
 EXPOSE 7764
-CMD ["env/bin/pserve", "app.ini"]
+CMD ["pserve", "app.ini"]
