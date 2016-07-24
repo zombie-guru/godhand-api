@@ -6,11 +6,13 @@ import colander as co
 from .utils import only_integers
 
 
-class MangaSchema(co.MappingSchema):
-    uri = co.SchemaNode(co.String())
+class NoResultsForUri(ValueError):
+    pass
 
+
+class MangaSchema(co.MappingSchema):
     @co.instantiate()
-    class title(co.SequenceSchema):
+    class name(co.SequenceSchema):
         value = co.SchemaNode(co.String())
 
     @co.instantiate()
@@ -40,8 +42,7 @@ def load_manga_resource(uri):
     PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
     PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
     SELECT DISTINCT
-    ?book as ?uri
-    group_concat(distinct ?label, '|') as ?title
+    group_concat(distinct ?label, '|') as ?name
     group_concat(distinct ?author, '|') as ?author
     group_concat(distinct ?magazine, '|') as ?magazine
     group_concat(distinct ?genre, '|') as ?genre
@@ -79,7 +80,6 @@ def load_manga_resource(uri):
     try:
         response = client.query().convert()['results']['bindings'][0]
     except IndexError:
-        return dict()
+        raise NoResultsForUri(uri)
     cstruct = {k: v['value'].split('|') for k, v in response.items()}
-    cstruct['uri'] = cstruct['uri'][0]
     return MangaSchema().deserialize(cstruct)

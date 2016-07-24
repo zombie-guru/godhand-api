@@ -1,9 +1,13 @@
+import urllib.parse
+
 from cornice import Service
 from pyramid.httpexceptions import HTTPBadRequest
 from pyramid.httpexceptions import HTTPNotFound
 import colander as co
 import couchdb.http
 
+from ..opendata import NoResultsForUri
+from ..opendata import load_manga_resource
 from .utils import PaginationSchema
 from .utils import paginate_query
 
@@ -51,10 +55,14 @@ def get_series_collection(request):
 
 
 class PostSeriesCollectionSchema(co.MappingSchema):
-    name = co.SchemaNode(co.String())
-    description = co.SchemaNode(co.String())
+    uri = co.SchemaNode(
+        co.String(), validator=co.url,
+        description='Create from RDF resource of rdf:type dbo:Manga.',
+        missing=None)
+    name = co.SchemaNode(co.String(), missing=None)
+    description = co.SchemaNode(co.String(), missing=None)
 
-    @co.instantiate()
+    @co.instantiate(missing=None)
     class genres(co.SequenceSchema):
         genre = co.SchemaNode(co.String())
 
@@ -76,14 +84,33 @@ def create_series(request):
         }
 
     """
+    v = request.validated
+    if v['uri']:
+        try:
+            doc = load_manga_resource(v['uri'])
+            keys = (
+                'name', 'description', 'author', 'magazine',
+                'number_of_volumes',
+            )
+            for key in keys:
+                try:
+                    doc[key] = doc[key][0]
+                except IndexError:
+                    doc[key] = None
+            doc['genres'] = doc.pop('genre')
+        except NoResultsForUri:
+            raise HTTPBadRequest('No results found for URI: {}'.format(
+                v['uri']))
+    else:
+        doc = {
+            'name': v['name'],
+            'description': v['description'],
+            'genres': v['genres'] if v['genres'] else list(),
+        }
+    doc['type'] = 'series'
+    doc['volumes'] = []
     db = request.registry['godhand:db']
-    _id, _rev = db.save({
-        'type': 'series',
-        'name': request.validated['name'],
-        'description': request.validated['description'],
-        'genres': request.validated['genres'],
-        'volumes': [],
-    })
+    _id, _rev = db.save(doc)
     return {
         'series': [_id],
     }

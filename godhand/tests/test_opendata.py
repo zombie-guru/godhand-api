@@ -5,12 +5,11 @@ class TestLoadMangaResource(object):
 
     def test_load_berserk(self):
         keys = [
-            'description', 'title', 'author', 'number_of_volumes', 'magazine',
+            'description', 'name', 'author', 'number_of_volumes', 'magazine',
             'genre',
         ]
         uri = 'http://dbpedia.org/resource/Berserk_(manga)'
         response = self.fut(uri)
         for key in keys:
             assert len(response[key]) > 0
-        assert response['uri'] == uri
         assert all(isinstance(x, int) for x in response['number_of_volumes'])
