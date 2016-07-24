@@ -19,6 +19,7 @@ setup(
         'couchdb',
         'colander',
         'pyramid',
+        'sparqlwrapper',
     ],
     entry_points={
         'paste.app_factory': [
