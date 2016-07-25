@@ -4,8 +4,6 @@ from pyramid.httpexceptions import HTTPNotFound
 import colander as co
 import couchdb.http
 
-from ..opendata import NoResultsForUri
-from ..opendata import load_manga_resource
 from .utils import PaginationSchema
 from .utils import paginate_query
 
@@ -61,10 +59,6 @@ def get_series_collection(request):
 
 
 class PostSeriesCollectionSchema(co.MappingSchema):
-    uri = co.SchemaNode(
-        co.String(), validator=co.url,
-        description='Create from RDF resource of rdf:type dbo:Manga.',
-        missing=None)
     name = co.SchemaNode(co.String(), missing=None)
     description = co.SchemaNode(co.String(), missing=None)
     author = co.SchemaNode(co.String(), missing=None)
@@ -98,33 +92,15 @@ def create_series(request):
 
     """
     v = request.validated
-    if v['uri']:
-        try:
-            doc = load_manga_resource(v['uri'])
-        except NoResultsForUri:
-            raise HTTPBadRequest('No results found for URI: {}'.format(
-                v['uri']))
-        keys = (
-            'name', 'description', 'author', 'magazine',
-            'number_of_volumes',
-        )
-        for key in keys:
-            try:
-                doc[key] = doc[key][0]
-            except IndexError:
-                doc[key] = None
-        doc['genres'] = doc.pop('genre')
-        doc['dbpedia_uri'] = v['uri']
-    else:
-        doc = {
-            'name': v['name'],
-            'description': v['description'],
-            'genres': v['genres'] if v['genres'] else list(),
-            'author': v['author'],
-            'magazine': v['magazine'],
-            'number_of_volumes': v['number_of_volumes'],
-            'dbpedia_uri': None,
-        }
+    doc = {
+        'name': v['name'],
+        'description': v['description'],
+        'genres': v['genres'] if v['genres'] else list(),
+        'author': v['author'],
+        'magazine': v['magazine'],
+        'number_of_volumes': v['number_of_volumes'],
+        'dbpedia_uri': None,
+    }
     doc['type'] = 'series'
     doc['volumes'] = []
     db = request.registry['godhand:db']
