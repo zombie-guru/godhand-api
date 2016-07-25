@@ -26,6 +26,7 @@ setup(
             'main = godhand.rest:main',
         ],
         'console_scripts': [
+            'godhand-cli = godhand.cli:main',
         ]
     },
     extras_require={

@@ -1,9 +1,13 @@
 """ Tools to import metadata from open APIs.
 """
+import logging
+
 from SPARQLWrapper import SPARQLWrapper, JSON
 import colander as co
 
 from .utils import only_integers
+
+LOG = logging.getLogger('opendata')
 
 
 class NoResultsForUri(ValueError):
@@ -11,6 +15,10 @@ class NoResultsForUri(ValueError):
 
 
 class MangaSchema(co.MappingSchema):
+    @co.instantiate()
+    class uri(co.SequenceSchema):
+        value = co.SchemaNode(co.String())
+
     @co.instantiate()
     class name(co.SequenceSchema):
         value = co.SchemaNode(co.String())
@@ -36,12 +44,28 @@ class MangaSchema(co.MappingSchema):
         value = co.SchemaNode(co.String())
 
 
-def load_manga_resource(uri):
-    client = SPARQLWrapper("http://dbpedia.org/sparql")
+def iterate_manga():
+    client = SPARQLWrapper('http://dbpedia.org/sparql')
+    offset = 0
+    limit = 100
+    while True:
+        documents = get_manga(client, offset, limit)
+        n_document = -1
+        for n_document, document in enumerate(documents):
+            yield document
+        LOG.info('received batch ({}-{}): {} items'.format(
+            offset, offset+limit, n_document + 1))
+        if n_document < (limit - 1):
+            return
+        offset += limit
+
+
+def get_manga(client, offset, limit):
     client.setQuery('''
     PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
     PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
     SELECT DISTINCT
+    ?book as ?uri
     group_concat(distinct ?label, '|') as ?name
     group_concat(distinct ?author, '|') as ?author
     group_concat(distinct ?magazine, '|') as ?magazine
@@ -71,15 +95,10 @@ def load_manga_resource(uri):
     FILTER (lang(?comment) = 'en')
     FILTER (lang(?label) = 'en')
     FILTER (lang(?genre) = 'en')
-
-    VALUES ?book { <%(uri)s> }
-
-    } group by ?book LIMIT 1
-    ''' % {'uri': uri})
+    } group by ?book OFFSET %(offset)d LIMIT %(limit)d
+    ''' % {'offset': offset, 'limit': limit})
     client.setReturnFormat(JSON)
-    try:
-        response = client.query().convert()['results']['bindings'][0]
-    except IndexError:
-        raise NoResultsForUri(uri)
-    cstruct = {k: v['value'].split('|') for k, v in response.items()}
-    return MangaSchema().deserialize(cstruct)
+    response = client.query().convert()
+    for document in response['results']['bindings']:
+        cstruct = {k: v['value'].split('|') for k, v in document.items()}
+        yield MangaSchema().deserialize(cstruct)
