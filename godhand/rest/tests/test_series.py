@@ -51,6 +51,39 @@ class TestEmpty(ApiTest):
         }
         response = self.api.get('/series').json_body
         self.assertEquals(expected, response)
+        # search by regex
+        expected = {
+            'series': [{
+                'id': series_id,
+                'name': 'Berserk',
+                'description': 'My Description',
+                'genres': ['action', 'meme'],
+                'dbpedia_uri': None,
+                'author': None,
+                'magazine': None,
+                'number_of_volumes': None,
+            }],
+            'offset': 0,
+            'total': 1,
+            'limit': 10,
+        }
+        response = self.api.get(
+            '/series',
+            params={'only_has_volumes': 'false', 'name_q': 'berserk'}
+        ).json_body
+        self.assertEquals(expected, response)
+        # search by regex negative
+        expected = {
+            'series': [],
+            'offset': 0,
+            'total': 0,
+            'limit': 10,
+        }
+        response = self.api.get(
+            '/series',
+            params={'only_has_volumes': 'false', 'name_q': 'derp'}
+        ).json_body
+        self.assertEquals(expected, response)
         # Get the series by the key
         expected = {
             'id': series_id,
