@@ -80,3 +80,15 @@ class TestEmpty(ApiTest):
         }
         response = self.api.get('/series/{}'.format(series_id)).json_body
         self.assertEquals(expected, response)
+        expected = {'series': [{
+            'id': series_id,
+            'name': 'Berserk',
+            'description': 'My Description',
+            'genres': ['action', 'meme'],
+            'dbpedia_uri': None,
+            'author': None,
+            'magazine': None,
+            'number_of_volumes': None,
+        }], 'limit': 10, 'offset': 0, 'total': 1}
+        response = self.api.get('/series').json_body
+        self.assertEquals(expected, response)
