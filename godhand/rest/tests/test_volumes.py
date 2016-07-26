@@ -7,7 +7,7 @@ from .utils import tmp_cbt
 class TestEmpty(ApiTest):
     def test_create_volume(self):
         # retrieve volumes
-        expected = {'volumes': [], 'offset': 0, 'total': 0}
+        expected = {'volumes': [], 'offset': 0, 'total': 0, 'limit': 10}
         response = self.api.get('/volumes').json_body
         self.assertEquals(expected, response)
         # create a volume
@@ -22,7 +22,7 @@ class TestEmpty(ApiTest):
         # get all volumes
         expected = {
             'volumes': [{'id': volume_id, 'volume_number': 7}],
-            'offset': 0, 'total': 1,
+            'offset': 0, 'total': 1, 'limit': 10,
         }
         response = self.api.get('/volumes').json_body
         self.assertEquals(expected, response)
@@ -79,4 +79,16 @@ class TestEmpty(ApiTest):
             'number_of_volumes': None,
         }
         response = self.api.get('/series/{}'.format(series_id)).json_body
+        self.assertEquals(expected, response)
+        expected = {'series': [{
+            'id': series_id,
+            'name': 'Berserk',
+            'description': 'My Description',
+            'genres': ['action', 'meme'],
+            'dbpedia_uri': None,
+            'author': None,
+            'magazine': None,
+            'number_of_volumes': None,
+        }], 'limit': 10, 'offset': 0, 'total': 1}
+        response = self.api.get('/series').json_body
         self.assertEquals(expected, response)

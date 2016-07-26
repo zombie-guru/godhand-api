@@ -16,7 +16,13 @@ series_volume = Service(
 )
 
 
-@series_collection.get(schema=PaginationSchema)
+class GetSeriesCollectionSchema(PaginationSchema):
+    only_has_volumes = co.SchemaNode(
+        co.Boolean(), missing=True, location='querystring',
+        description='Only include series with associated volumes.')
+
+
+@series_collection.get(schema=GetSeriesCollectionSchema)
 def get_series_collection(request):
     """ Get all series.
 
@@ -40,8 +46,11 @@ def get_series_collection(request):
         }
 
     """
+    only_has_volumes = ''
+    if request.validated['only_has_volumes']:
+        only_has_volumes = '&& (doc.volumes.length > 0)'
     query = '''function(doc) {
-        if (doc.type == "series") {
+        if ( (doc.type == "series") %(only_has_volumes)s ) {
             emit({
                 id: doc._id,
                 name: doc.name,
@@ -54,7 +63,7 @@ def get_series_collection(request):
             })
         }
     }
-    '''
+    ''' % {'only_has_volumes': only_has_volumes}
     return paginate_query(request, query, 'series')
 
 
