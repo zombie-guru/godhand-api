@@ -60,7 +60,8 @@ class ApiTest(unittest.TestCase):
         self.api = TestApp(main(
             {}, books_path=books_path,
             couchdb_url='http://couchdb:mypassword@{}:8001'.format(
-                self.app_test_fix.get_ip())
+                self.app_test_fix.get_ip()),
+            fuse_url='http://fuse:8000/api'
         ))
 
     def use_fixture(self, fix):

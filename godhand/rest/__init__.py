@@ -12,6 +12,7 @@ def main(global_config, **settings):
     cfg = GodhandConfiguration.from_env(
         books_path=settings.get('books_path', None),
         couchdb_url=settings.get('couchdb_url', None),
+        fuse_url=settings.get('fuse_url', None),
     )
     books_path = os.path.abspath(cfg.books_path)
     config = Configurator(settings=settings)
