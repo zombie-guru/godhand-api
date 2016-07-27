@@ -1,3 +1,4 @@
+from itertools import islice
 from urllib.parse import urlparse
 import socket
 import time
@@ -37,3 +38,13 @@ def maybe_int(x):
 
 def only_integers(values):
     return list(filter(non_null, (maybe_int(x) for x in values)))
+
+
+def batched(gen, batch_size):
+    gen = iter(gen)
+    while True:
+        batch = list(islice(gen, 0, batch_size))
+        if len(batch) > 0:
+            yield batch
+        if len(batch) < batch_size:
+            return
