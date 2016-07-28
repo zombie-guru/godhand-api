@@ -24,6 +24,10 @@ class AppTestFixture(Fixture):
         self.addCleanup(self.cleanUp)
         self.compose('up', '-d')
 
+    @property
+    def compose_file(self):
+        return os.path.join(HERE, 'docker-compose.yml')
+
     def get_ip(self):
         try:
             url = os.environ['DOCKER_HOST']
@@ -40,7 +44,7 @@ class AppTestFixture(Fixture):
         with SpooledTemporaryFile() as f:
             check_call((
                 os.path.join(BUILDOUT_BIN_DIRECTORY, 'docker-compose'),
-                '-f', os.path.join(HERE, 'docker-compose.yml'),
+                '-f', self.compose_file,
                 '--project', 'testing',
                 ) + args, cwd=BUILDOUT_DIR, stderr=f, stdout=f)
             f.flush()
