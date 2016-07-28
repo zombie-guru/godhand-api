@@ -82,6 +82,7 @@ def fuse_setup(fuse_url=None):
         books_path=os.path.abspath(os.path.curdir),
         fuse_url=fuse_url, couchdb_url='http://couchdb')
     client = FuseClient(cfg.fuse_url)
+    client.stop_fuse()
     client.setup_fuse()
     client.start_fuse()
     client.wait_until_ready()
