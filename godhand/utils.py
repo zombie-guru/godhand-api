@@ -37,7 +37,10 @@ def maybe_int(x):
 
 
 def only_integers(values):
-    return list(filter(non_null, (maybe_int(x) for x in values)))
+    try:
+        return list(filter(non_null, (maybe_int(x) for x in values)))
+    except TypeError:
+        return []
 
 
 def batched(gen, batch_size):

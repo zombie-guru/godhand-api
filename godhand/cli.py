@@ -69,9 +69,17 @@ def upload(couchdb_url=None, fuse_url=None):
         keys = (
             'name', 'description', 'author', 'magazine', 'number_of_volumes')
         for key in keys:
-            doc[key] = doc[key][0]
-        doc['number_of_volumes'] = int(doc['number_of_volumes'])
-        doc['genres'] = doc.pop('genre')
+            values = doc.pop(key)
+            if values:
+                doc[key] = values[0]
+        try:
+            doc['number_of_volumes'] = int(doc['number_of_volumes'])
+        except KeyError:
+            pass
+        try:
+            doc['genres'] = doc.pop('genre')
+        except KeyError:
+            pass
         doc['type'] = 'series'
         doc['volumes'] = []
         db.save(doc)
