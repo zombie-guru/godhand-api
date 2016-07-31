@@ -164,9 +164,9 @@ def get_series(request):
             'name': doc['name'],
             'description': doc['description'],
             'dbpedia_uri': doc['dbpedia_uri'],
-            'author': doc['author'],
-            'magazine': doc['magazine'],
-            'number_of_volumes': doc['number_of_volumes'],
+            'author': doc.get('author'),
+            'magazine': doc.get('magazine'),
+            'number_of_volumes': doc.get('number_of_volumes'),
             'genres': doc['genres'],
             'volumes': list(filter(
                 lambda x: x is not None,

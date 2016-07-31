@@ -27,19 +27,19 @@ class MangaSchema(co.MappingSchema):
     class description(co.SequenceSchema):
         value = co.SchemaNode(co.String())
 
-    @co.instantiate()
+    @co.instantiate(missing=None)
     class author(co.SequenceSchema):
         value = co.SchemaNode(co.String())
 
-    @co.instantiate()
+    @co.instantiate(missing=None)
     class magazine(co.SequenceSchema):
         value = co.SchemaNode(co.String())
 
-    @co.instantiate()
+    @co.instantiate(missing=None)
     class genre(co.SequenceSchema):
         value = co.SchemaNode(co.String())
 
-    @co.instantiate(preparer=only_integers)
+    @co.instantiate(preparer=only_integers, missing=None)
     class number_of_volumes(co.SequenceSchema):
         value = co.SchemaNode(co.String())
 
@@ -77,28 +77,36 @@ def get_manga(client, offset, limit):
 
     ?book
       rdfs:label ?label ;
-      dbo:numberOfVolumes ?numberOfVolumes ;
       rdfs:comment ?comment ;
-
-      dbo:author _:author ;
-      dbo:magazine _:magazine ;
-      dbp:genre _:genre ;
-
       rdf:type dbo:Manga .
 
-    _:author rdfs:label ?author .
-    _:magazine rdfs:label ?magazine .
-    _:genre rdfs:label ?genre .
+    OPTIONAL {
+        ?book dbo:numberOfVolumes ?numberOfVolumes .
+    }
+    OPTIONAL {
+        ?book dbo:magazine _:magazine .
+        _:magazine rdfs:label ?magazine .
+        FILTER (lang(?magazine) = 'en')
+    }
+    OPTIONAL {
+        ?book dbo:author _:author .
+        _:author rdfs:label ?author .
+        FILTER (lang(?author) = 'en')
+    }
+    OPTIONAL {
+        ?book dbp:genre _:genre .
+        _:genre rdfs:label ?genre .
+        FILTER (lang(?genre) = 'en')
+    }
 
-    FILTER (lang(?author) = 'en')
-    FILTER (lang(?magazine) = 'en')
-    FILTER (lang(?comment) = 'en')
     FILTER (lang(?label) = 'en')
-    FILTER (lang(?genre) = 'en')
+    FILTER (lang(?comment) = 'en')
     } group by ?book OFFSET %(offset)d LIMIT %(limit)d
     ''' % {'offset': offset, 'limit': limit})
     client.setReturnFormat(JSON)
     response = client.query().convert()
     for document in response['results']['bindings']:
-        cstruct = {k: v['value'].split('|') for k, v in document.items()}
+        cstruct = {
+            k: v['value'].split('|') for k, v in document.items()
+            if v['value'] != ''}
         yield MangaSchema().deserialize(cstruct)

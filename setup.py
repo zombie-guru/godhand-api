@@ -11,6 +11,7 @@ setup(
     url='',
     packages=find_packages(),
     package_data={
+        'godhand': ['fusepkg/*.json'],
     },
     include_package_data=True,
     zip_safe=False,
@@ -19,6 +20,7 @@ setup(
         'couchdb',
         'colander',
         'pyramid',
+        'requests',
         'sparqlwrapper',
     ],
     entry_points={

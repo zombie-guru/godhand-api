@@ -1,0 +1,6 @@
+fuse:
+  image: docker.qsensei.com/fuse-free:latest
+  environment:
+    FUSE_AUTH: none
+  ports:
+    - 8000:8000

@@ -1,0 +1,23 @@
+{
+  "defaults": {
+    "fulltext_index": "tx",
+    "sort_direction": "asc",
+    "sort_by_index": "name",
+    "limit": 3
+  },
+  "indexes": [
+    {"name": "tx", "type": "text"},
+    {"name": "type"},
+    {"name": "name"},
+    {"name": "genre"},
+    {"name": "author"},
+    {"name": "magazine"}
+  ],
+  "sources": [
+    {"index": "type", "contenttype": "series", "attribute": "fuse:type"},
+    {"index": "name", "contenttype": "series", "attribute": "name"},
+    {"index": "genre", "contenttype": "series", "attribute": "genres"},
+    {"index": "author", "contenttype": "series", "attribute": "author"},
+    {"index": "magazine", "contenttype": "series", "attribute": "magazine"}
+  ]
+}

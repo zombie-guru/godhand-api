@@ -19,13 +19,14 @@ class GodhandConfiguration(object):
             for kw in kws
         }
 
-    def __init__(self, couchdb_url, books_path):
+    def __init__(self, couchdb_url, books_path, fuse_url):
         self.couchdb_url = couchdb_url
         self.books_path = books_path
+        self.fuse_url = fuse_url
 
     def __repr__(self):
         attributes = ['{}={!r}'.format(k, getattr(self, k)) for k in (
-            'couchdb_url', 'books_path')]
+            'couchdb_url', 'books_path', 'fuse_url')]
         return 'GodhandConfiguration<{}>'.format(
             ','.join(attributes)
         )
@@ -38,4 +39,5 @@ def is_path(node, appstruct):
 
 class GodhandConfigurationSchema(co.MappingSchema):
     couchdb_url = co.SchemaNode(co.String(), validator=co.url)
+    fuse_url = co.SchemaNode(co.String(), validator=co.url)
     books_path = co.SchemaNode(co.String(), validator=is_path)

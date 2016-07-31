@@ -1,0 +1,15 @@
+{
+  "types": [
+    {
+      "id": "series",
+      "attributes": [
+        {"name": "name"},
+        {"name": "description"},
+        {"name": "genres", "multi": true},
+        {"name": "dbpedia_uri"},
+        {"name": "author"},
+        {"name": "magazine"}
+      ]
+    }
+  ]
+}
