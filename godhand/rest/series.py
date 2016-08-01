@@ -1,56 +1,25 @@
 from cornice import Service
-from pyramid.httpexceptions import HTTPBadRequest
 from pyramid.httpexceptions import HTTPNotFound
 import colander as co
 import couchdb.http
 
 from ..models import Series
+from ..models import Volume
 from .utils import PaginationSchema
 from .utils import paginate_query
 
 
 series_collection = Service(name='series_collection', path='/series')
 series = Service(name='series', path='/series/{series}')
-series_volume = Service(
-    name='series_volume',
-    path='/series/{series}/volumes/{volume}',
-)
+series_volumes = Service(
+    name='series_volumes', path='/series/{series}/volumes')
 
 
-class GetSeriesCollectionSchema(PaginationSchema):
-    only_has_volumes = co.SchemaNode(
-        co.Boolean(), missing=True, location='querystring',
-        description='Only include series with associated volumes.')
-
-
-@series_collection.get(schema=GetSeriesCollectionSchema)
+@series_collection.get(schema=PaginationSchema)
 def get_series_collection(request):
     """ Get all series.
-
-    .. code-block:: js
-
-        {
-            "series": [
-                "id": "myseriesid",
-                "name": "Berserk",
-                "description": "Berserk is a series written by Kentaro Miura.",
-                "dbpedia_uri": "http://dbpedia.org/resource/Berserk_(manga)",
-                "author": "Kentaro Miura",
-                "magazine": "Young Animal",
-                "number_of_volumes": 38,
-                "genre": [
-                    "action",
-                    "dark fantasy",
-                    "tragedy"
-                ]
-            ]
-        }
-
     """
-    if request.validated['only_has_volumes']:
-        return paginate_query(request, Series.by_id_has_volumes, 'series')
-    else:
-        return paginate_query(request, Series.by_id, 'series')
+    return paginate_query(request, Series.by_id, 'series')
 
 
 class PostSeriesCollectionSchema(co.MappingSchema):
@@ -60,7 +29,7 @@ class PostSeriesCollectionSchema(co.MappingSchema):
     magazine = co.SchemaNode(co.String(), missing=None)
     number_of_volumes = co.SchemaNode(co.String(), missing=None)
 
-    @co.instantiate(missing=None)
+    @co.instantiate(missing=())
     class genres(co.SequenceSchema):
         genre = co.SchemaNode(co.String())
 
@@ -86,77 +55,51 @@ def create_series(request):
         }
 
     """
-    v = request.validated
-    doc = Series(
-        name=v['name'],
-        description=v['description'],
-        genres=v['genres'] if v['genres'] else list(),
-        author=v['author'],
-        magazine=v['magazine'],
-        number_of_volumes=v['number_of_volumes'],
-        volumes=[],
-    )
+    doc = Series(**request.validated)
     doc.store(request.registry['godhand:db'])
     return {
         'series': [doc.id],
     }
 
 
-class GetSeriesSchema(co.MappingSchema):
+class SeriesPathSchema(co.MappingSchema):
     series = co.SchemaNode(co.String(), location='path')
 
 
-@series.get(schema=GetSeriesSchema)
+@series.get(schema=SeriesPathSchema)
 def get_series(request):
     """ Get a series by key.
-
-    .. code-block:: js
-
-        {
-            "id": "myid",
-            "name": "Berserk",
-            "description": "My description",
-            "dbpedia_uri": "http://dbpedia.org/resource/Berserk_(manga)",
-            "author": "Kentaro Miura",
-            "magazine": "Young Animal",
-            "number_of_volumes": 38,
-            "genres": [
-                "action",
-                "dark fantasy",
-                "tragedy"
-            ],
-            "volumes": []
-        }
-
     """
     db = request.registry['godhand:db']
     series_id = request.validated['series']
     try:
-        doc = db[series_id]
+        doc = Series.load(db, series_id)
     except couchdb.http.ResourceNotFound:
         raise HTTPNotFound(series_id)
     else:
         return dict(doc.items())
 
 
-class PutSeriesVolume(co.MappingSchema):
-    series = co.SchemaNode(co.String(), location='path')
-    volume = co.SchemaNode(co.String(), location='path')
-
-
-@series_volume.put(schema=PutSeriesVolume)
-def add_volume_to_series(request):
-    """ Add a volume to a series.
+@series_volumes.post(
+    schema=SeriesPathSchema, content_type=('multipart/form-data',))
+def upload_volume(request):
+    """ Create volume and return unique ids.
     """
     db = request.registry['godhand:db']
-    v = request.validated
+    series_id = request.validated['series']
     try:
-        series = db[v['series']]
+        doc = Series.load(db, series_id)
     except couchdb.http.ResourceNotFound:
-        raise HTTPNotFound(v['series'])
-    try:
-        volume = db[v['volume']]
-    except couchdb.http.ResourceNotFound:
-        raise HTTPBadRequest
-    series['volumes'].append(volume.id)
-    db[v['series']] = series
+        raise HTTPNotFound(series_id)
+    volume_ids = []
+    for key, value in request.POST.items():
+        volume = Volume.from_archieve(
+            books_path=request.registry['godhand:books_path'],
+            filename=value.filename,
+            fd=value.file,
+        )
+        volume.store(db)
+        doc.add_volume(volume)
+        volume_ids.append(volume.id)
+    doc.store(db)
+    return {'volumes': volume_ids}

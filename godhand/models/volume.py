@@ -37,6 +37,7 @@ class Volume(Document):
             rmtree(basedir)
             raise
 
+    class_ = TextField('@class', default='Volume')
     filename = TextField()
     volume_number = IntegerField()
     pages = ListField(DictField(Mapping.build(
@@ -46,9 +47,11 @@ class Volume(Document):
         orientation=TextField(),
     )))
 
-    by_id = ViewField('people', '''
+    by_id = ViewField('volume', '''
         function(doc) {
-            emit(doc.id, doc)
+            if ( doc['@class'] === 'Volume') {
+                emit(doc.id, doc);
+            }
         }
     ''')
 
