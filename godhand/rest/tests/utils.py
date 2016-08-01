@@ -90,3 +90,34 @@ def tmp_cbt(filenames):
         f.flush()
         f.seek(0)
         yield f
+
+
+class CbtFile(object):
+    @property
+    def pages(self):
+        widths = (256, 128, 64)
+        heights = (128, 128, 128)
+        orientation = ('horizontal', 'horizontal', 'vertical')
+        return [{
+            'filename': 'page-{:x}.png'.format(n),
+            'width': widths[n % 3],
+            'height': heights[n % 3],
+            'orientation': orientation[n % 3],
+            'black_pixel': (n, n),
+        } for n in range(15)]
+
+    @contextlib.contextmanager
+    def as_cbt(self):
+        with TemporaryFile() as f:
+            with tarfile.open(fileobj=f, mode='w') as ar:
+                for o in self.pages:
+                    with NamedTemporaryFile() as mf:
+                        im = Image.new(
+                            'RGB', (o['width'], o['height']))
+                        im.putpixel(o['black_pixel'], (0xfe, 0xfe, 0xfe))
+                        im.save(mf, 'png')
+                        mf.flush()
+                        ar.add(mf.name, o['filename'])
+            f.flush()
+            f.seek(0)
+            yield f
