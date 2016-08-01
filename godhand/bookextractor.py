@@ -50,15 +50,7 @@ class BookExtractor(object):
             # ignore dot files
             files = filter(lambda x: not x.startswith('.'), files)
             for page in files:
-                try:
-                    mimetype = filename_to_mimetype(page)
-                except ValueError:
-                    continue
-                relpath = os.path.relpath(
-                    os.path.join(root, page),
-                    self.path,
-                )
-                yield relpath, mimetype
+                yield os.path.join(root, page)
 
 
 class CbtBookExtractor(BookExtractor):

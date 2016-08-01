@@ -6,6 +6,7 @@ import couchdb.client
 
 from ..config import GodhandConfiguration
 from ..utils import wait_for_couchdb
+from ..models import sync
 
 
 def main(global_config, **settings):
@@ -24,6 +25,7 @@ def main(global_config, **settings):
         db = client.create('godhand')
     except couchdb.http.PreconditionFailed:
         db = client['godhand']
+    sync(db)
     config.registry['godhand:books_path'] = books_path
     config.registry['godhand:db'] = db
     config.add_static_view('static', books_path)

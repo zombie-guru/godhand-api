@@ -10,12 +10,13 @@ class PaginationSchema(co.MappingSchema):
         location='querystring')
 
 
-def paginate_query(request, query, key):
+def paginate_query(request, view_def, key, start=None, end=None):
     v = request.validated
     db = request.registry['godhand:db']
-    rows = db.query(query, skip=v['offset'], limit=v['limit'])
+    rows = view_def(
+        db, skip=v['offset'], limit=v['limit'], startkey=start, endkey=end)
     return {
-        key: [x['key'] for x in rows],
+        key: [dict(x.items()) for x in rows],
         'offset': rows.offset,
         'limit': v['limit'],
         'total': rows.total_rows,

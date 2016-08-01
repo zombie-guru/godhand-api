@@ -1,4 +1,6 @@
+from PIL import Image
 from subprocess import check_call
+from tempfile import NamedTemporaryFile
 from tempfile import SpooledTemporaryFile
 from tempfile import TemporaryFile
 from urllib.parse import urlparse
@@ -79,14 +81,12 @@ def tmp_cbt(filenames):
     with TemporaryFile() as f:
         with tarfile.open(fileobj=f, mode='w') as ar:
             for filename in filenames:
-                with TemporaryFile() as mf:
-                    content = 'content of {}'.format(filename).encode('utf-8')
-                    mf.write(content)
+                with NamedTemporaryFile() as mf:
+                    im = Image.new('RGB', (128, 128), 'white')
+                    im.putpixel((0, 0), (0, 0, 0))
+                    im.save(mf, 'jpeg')
                     mf.flush()
-                    mf.seek(0)
-                    info = tarfile.TarInfo(filename)
-                    info.size = len(content)
-                    ar.addfile(info, mf)
+                    ar.add(mf.name, filename)
         f.flush()
         f.seek(0)
         yield f

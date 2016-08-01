@@ -25,14 +25,14 @@ class TestEmpty(ApiTest):
         # get all series
         expected = {
             'series': [{
-                'id': series_id,
+                '_id': series_id,
                 'name': 'Berserk',
                 'description': 'My Description',
                 'genres': ['action', 'meme'],
-                'dbpedia_uri': None,
                 'author': None,
                 'magazine': None,
                 'number_of_volumes': None,
+                'volumes': [],
             }],
             'offset': 0,
             'total': 1,
@@ -41,6 +41,8 @@ class TestEmpty(ApiTest):
         response = self.api.get(
             '/series', params={'only_has_volumes': 'false'}
         ).json_body
+        for series in response['series']:
+            assert series.pop('_rev')
         self.assertEquals(expected, response)
         # get all series with volumes
         expected = {
@@ -51,47 +53,13 @@ class TestEmpty(ApiTest):
         }
         response = self.api.get('/series').json_body
         self.assertEquals(expected, response)
-        # search by regex
-        expected = {
-            'series': [{
-                'id': series_id,
-                'name': 'Berserk',
-                'description': 'My Description',
-                'genres': ['action', 'meme'],
-                'dbpedia_uri': None,
-                'author': None,
-                'magazine': None,
-                'number_of_volumes': None,
-            }],
-            'offset': 0,
-            'total': 1,
-            'limit': 10,
-        }
-        response = self.api.get(
-            '/series',
-            params={'only_has_volumes': 'false', 'name_q': 'berserk'}
-        ).json_body
-        self.assertEquals(expected, response)
-        # search by regex negative
-        expected = {
-            'series': [],
-            'offset': 0,
-            'total': 0,
-            'limit': 10,
-        }
-        response = self.api.get(
-            '/series',
-            params={'only_has_volumes': 'false', 'name_q': 'derp'}
-        ).json_body
-        self.assertEquals(expected, response)
         # Get the series by the key
         expected = {
-            'id': series_id,
+            '_id': series_id,
             'name': 'Berserk',
             'description': 'My Description',
             'genres': ['action', 'meme'],
             'volumes': [],
-            'dbpedia_uri': None,
             'author': None,
             'magazine': None,
             'number_of_volumes': None,
@@ -100,6 +68,7 @@ class TestEmpty(ApiTest):
             '/series/{}'.format(series_id),
             params={'only_has_volumes': 'false'},
         ).json_body
+        assert response.pop('_rev')
         self.assertEquals(expected, response)
         # create more series and try pagination
         for _ in range(99):

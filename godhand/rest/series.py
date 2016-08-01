@@ -4,6 +4,7 @@ from pyramid.httpexceptions import HTTPNotFound
 import colander as co
 import couchdb.http
 
+from ..models import Series
 from .utils import PaginationSchema
 from .utils import paginate_query
 
@@ -20,9 +21,6 @@ class GetSeriesCollectionSchema(PaginationSchema):
     only_has_volumes = co.SchemaNode(
         co.Boolean(), missing=True, location='querystring',
         description='Only include series with associated volumes.')
-    name_q = co.SchemaNode(
-        co.String(), missing=None, location='querystring',
-        description='Query name field of series.')
 
 
 @series_collection.get(schema=GetSeriesCollectionSchema)
@@ -49,28 +47,10 @@ def get_series_collection(request):
         }
 
     """
-    only_has_volumes = ''
     if request.validated['only_has_volumes']:
-        only_has_volumes = '&& (doc.volumes.length > 0)'
-    name_q = ''
-    if request.validated['name_q']:
-        name_q = '&& (/%s/i.test(doc.name))' % request.validated['name_q']
-    query = '''function(doc) {
-        if ( (doc.type == "series") %(only_has_volumes)s %(name_q)s) {
-            emit({
-                id: doc._id,
-                name: doc.name,
-                description: doc.description,
-                genres: doc.genres,
-                dbpedia_uri: doc.dbpedia_uri,
-                author: doc.author,
-                magazine: doc.magazine,
-                number_of_volumes: doc.number_of_volumes
-            })
-        }
-    }
-    ''' % {'only_has_volumes': only_has_volumes, 'name_q': name_q}
-    return paginate_query(request, query, 'series')
+        return paginate_query(request, Series.by_id_has_volumes, 'series')
+    else:
+        return paginate_query(request, Series.by_id, 'series')
 
 
 class PostSeriesCollectionSchema(co.MappingSchema):
@@ -107,21 +87,18 @@ def create_series(request):
 
     """
     v = request.validated
-    doc = {
-        'name': v['name'],
-        'description': v['description'],
-        'genres': v['genres'] if v['genres'] else list(),
-        'author': v['author'],
-        'magazine': v['magazine'],
-        'number_of_volumes': v['number_of_volumes'],
-        'dbpedia_uri': None,
-    }
-    doc['type'] = 'series'
-    doc['volumes'] = []
-    db = request.registry['godhand:db']
-    _id, _rev = db.save(doc)
+    doc = Series(
+        name=v['name'],
+        description=v['description'],
+        genres=v['genres'] if v['genres'] else list(),
+        author=v['author'],
+        magazine=v['magazine'],
+        number_of_volumes=v['number_of_volumes'],
+        volumes=[],
+    )
+    doc.store(request.registry['godhand:db'])
     return {
-        'series': [_id],
+        'series': [doc.id],
     }
 
 
@@ -159,34 +136,7 @@ def get_series(request):
     except couchdb.http.ResourceNotFound:
         raise HTTPNotFound(series_id)
     else:
-        return {
-            'id': doc['_id'],
-            'name': doc['name'],
-            'description': doc['description'],
-            'dbpedia_uri': doc['dbpedia_uri'],
-            'author': doc.get('author'),
-            'magazine': doc.get('magazine'),
-            'number_of_volumes': doc.get('number_of_volumes'),
-            'genres': doc['genres'],
-            'volumes': list(filter(
-                lambda x: x is not None,
-                (render_volume(request, x) for x in doc['volumes'])
-            )),
-        }
-
-
-def render_volume(request, volume_id):
-    db = request.registry['godhand:db']
-    try:
-        doc = db[volume_id]
-    except couchdb.http.ResourceNotFound:
-        return None
-    if doc['type'] != 'volume':
-        return None
-    return {
-        'id': doc['_id'],
-        'volume_number': doc['volume_number'],
-    }
+        return dict(doc.items())
 
 
 class PutSeriesVolume(co.MappingSchema):
