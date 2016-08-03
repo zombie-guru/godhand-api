@@ -35,24 +35,10 @@ class TestFuseSync(unittest.TestCase):
     def test_sync(self):
         time.sleep(10)
         self.cli.fuse_setup(self.fuse_url)
-
         db = couchdb.client.Server(self.couchdb_url).create('godhand')
         Series.by_id.sync(db)
-
-        doc = Series(
-            name='My Series Name',
-            description='my description',
-            author='My Author',
-            magazine='My Magazine',
-            number_of_volumes=7,
-            genres=['my-genre'],
-            volumes=[{
-                'id': 'my-volume',
-                'volume_number': 6,
-            }],
-        )
-        doc.store(db)
-
+        with open(os.path.join(HERE, 'manga.json')) as f:
+            self.cli.upload(self.couchdb_url, self.fuse_url, f)
         self.cli.fuse_sync(
             self.couchdb_url,
             self.fuse_url,

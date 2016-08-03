@@ -8,6 +8,16 @@ import colander as co
 from .utils import only_integers
 
 LOG = logging.getLogger('opendata')
+PREFIXES = {
+    'http://dbpedia.org/resource/': 'dbr:',
+}
+
+
+def replace_uri_prefixes(uri):
+    for k, v in PREFIXES.items():
+        if uri.startswith(k):
+            return uri.replace(k, v)
+    raise ValueError('Unknown uri: {}'.format(uri))
 
 
 class NoResultsForUri(ValueError):

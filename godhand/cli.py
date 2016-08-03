@@ -9,6 +9,7 @@ import couchdb.http
 
 from .fuseclient import FuseClient
 from .opendata import iterate_manga
+from .opendata import replace_uri_prefixes
 from .config import GodhandConfiguration
 from .models import Series
 from .utils import wait_for_couchdb
@@ -57,16 +58,17 @@ def dbpedia_dump():
         sys.stdout.write('\n')
 
 
-def upload(couchdb_url=None, fuse_url=None):
+def upload(couchdb_url=None, fuse_url=None, lines=None):
+    if lines is None:
+        lines = sys.stdin
     cfg = GodhandConfiguration.from_env(
         books_path=os.path.abspath(os.path.curdir),
         couchdb_url=couchdb_url, fuse_url=fuse_url)
     db = get_db(cfg)
-    for n_line, line in enumerate(sys.stdin):
+    for n_line, line in enumerate(lines):
         if n_line and (n_line % 100) == 0:
             LOG.info('uploaded {} documents'.format(n_line))
         doc = json.loads(line)
-        doc['dbpedia_uri'] = doc.pop('uri')[0]
         keys = (
             'name', 'description', 'author', 'magazine', 'number_of_volumes')
         for key in keys:
@@ -81,9 +83,12 @@ def upload(couchdb_url=None, fuse_url=None):
             doc['genres'] = doc.pop('genre')
         except KeyError:
             pass
-        doc['type'] = 'series'
         doc['volumes'] = []
-        db.save(doc)
+
+        doc_id = replace_uri_prefixes(doc.pop('uri')[0])
+
+        s = Series(id=doc_id, **doc)
+        s.store(db)
 
 
 def fuse_setup(fuse_url=None):
