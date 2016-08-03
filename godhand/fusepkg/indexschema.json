@@ -1,4 +1,7 @@
 {
+  "components": [
+    {"type": "transformer", "name": "count", "component": "transformers:count"}
+  ],
   "defaults": {
     "fulltext_index": "tx",
     "sort_direction": "asc",
@@ -11,13 +14,15 @@
     {"name": "name"},
     {"name": "genre"},
     {"name": "author"},
-    {"name": "magazine"}
+    {"name": "magazine"},
+    {"name": "volumes_uploaded", "collate": "int"}
   ],
   "sources": [
     {"index": "type", "contenttype": "series", "attribute": "fuse:type"},
     {"index": "name", "contenttype": "series", "attribute": "name"},
     {"index": "genre", "contenttype": "series", "attribute": "genres"},
     {"index": "author", "contenttype": "series", "attribute": "author"},
-    {"index": "magazine", "contenttype": "series", "attribute": "magazine"}
+    {"index": "magazine", "contenttype": "series", "attribute": "magazine"},
+    {"index": "volumes_uploaded", "contenttype": "series", "attribute": "volumes", "transformers": ["count"]}
   ]
 }

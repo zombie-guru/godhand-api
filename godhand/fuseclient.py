@@ -12,9 +12,10 @@ fusepkg_dir = os.path.join(here, 'fusepkg')
 
 @contextmanager
 def fusepkg():
+    fns = ('contentschema.json', 'indexschema.json', 'transformers.py')
     with TemporaryFile() as f:
         with ZipFile(f, mode='w') as z:
-            for fn in ('contentschema.json', 'indexschema.json'):
+            for fn in fns:
                 z.write(os.path.join(fusepkg_dir, fn), fn)
         f.flush()
         f.seek(0)
