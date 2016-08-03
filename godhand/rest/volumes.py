@@ -1,13 +1,9 @@
-import os
-import re
-import tempfile
-
 from cornice import Service
 from pyramid.httpexceptions import HTTPNotFound
 import colander as co
 import couchdb.http
 
-from godhand import bookextractor
+from ..models import Volume
 from .utils import PaginationSchema
 from .utils import paginate_query
 
@@ -45,16 +41,7 @@ def get_volumes(request):
         }
 
     """
-    query = '''function(doc) {
-        if (doc.type == "volume") {
-            emit({
-                id: doc._id,
-                volume_number: doc.volume_number
-            })
-        }
-    }
-    '''
-    obj = paginate_query(request, query, 'volumes')
+    obj = paginate_query(request, Volume.by_id, 'volumes')
     return obj
 
 
@@ -64,24 +51,13 @@ def upload_volume(request):
     """
     volume_ids = []
     for key, value in request.POST.items():
-        basedir = tempfile.mkdtemp(dir=request.registry['godhand:books_path'])
-        extractor_cls = bookextractor.from_filename(value.filename)
-        extractor = extractor_cls(value.file, basedir)
-        # try to infer volume number
-        try:
-            volume_number = int(re.findall('\d+', value.filename)[-1])
-        except IndexError:
-            volume_number = None
-        volume = {
-            'type': 'volume',
-            'volume_number': volume_number,
-            'path': basedir,
-            'pages': [{
-                'path': page,
-            } for page, mimetype in extractor.iter_pages()]
-        }
-        _id, _rev = request.registry['godhand:db'].save(volume)
-        volume_ids.append(_id)
+        volume = Volume.from_archieve(
+            books_path=request.registry['godhand:books_path'],
+            filename=value.filename,
+            fd=value.file,
+        )
+        res = volume.store(request.registry['godhand:db'])
+        volume_ids.append(res.id)
     return {'volumes': volume_ids}
 
 
@@ -107,14 +83,9 @@ def get_volume(request):
     except couchdb.http.ResourceNotFound:
         raise HTTPNotFound(volume_id)
     else:
-        return {
-            'id': doc['_id'],
-            'volume_number': doc['volume_number'],
-            'pages': [{
-                'url': request.static_url(
-                    os.path.join(doc['path'], x['path'])),
-            } for x in doc['pages']]
-        }
+        for page in doc['pages']:
+            page['url'] = request.static_url(page['path'])
+        return dict(doc.items())
 
 
 class PutVolumeSchema(VolumePathSchema):

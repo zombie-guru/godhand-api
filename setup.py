@@ -19,6 +19,7 @@ setup(
         'cornice',
         'couchdb',
         'colander',
+        'Pillow',
         'pyramid',
         'requests',
         'sparqlwrapper',
