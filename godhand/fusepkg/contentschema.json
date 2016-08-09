@@ -8,6 +8,8 @@
         {"name": "genres", "multi": true},
         {"name": "dbpedia_uri"},
         {"name": "author"},
+        {"name": "volumes", "multi": true, "type": "object"},
+        {"name": "number_of_volumes", "type": "int"},
         {"name": "magazine"}
       ]
     }

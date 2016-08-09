@@ -11,7 +11,7 @@ setup(
     url='',
     packages=find_packages(),
     package_data={
-        'godhand': ['fusepkg/*.json'],
+        'godhand': ['fusepkg/*.json', 'fusepkg/*.py'],
     },
     include_package_data=True,
     zip_safe=False,

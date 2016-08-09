@@ -9,7 +9,9 @@ import couchdb.http
 
 from .fuseclient import FuseClient
 from .opendata import iterate_manga
+from .opendata import replace_uri_prefixes
 from .config import GodhandConfiguration
+from .models import Series
 from .utils import wait_for_couchdb
 from .utils import batched
 
@@ -56,16 +58,17 @@ def dbpedia_dump():
         sys.stdout.write('\n')
 
 
-def upload(couchdb_url=None, fuse_url=None):
+def upload(couchdb_url=None, fuse_url=None, lines=None):
+    if lines is None:
+        lines = sys.stdin
     cfg = GodhandConfiguration.from_env(
         books_path=os.path.abspath(os.path.curdir),
         couchdb_url=couchdb_url, fuse_url=fuse_url)
     db = get_db(cfg)
-    for n_line, line in enumerate(sys.stdin):
+    for n_line, line in enumerate(lines):
         if n_line and (n_line % 100) == 0:
             LOG.info('uploaded {} documents'.format(n_line))
         doc = json.loads(line)
-        doc['dbpedia_uri'] = doc.pop('uri')[0]
         keys = (
             'name', 'description', 'author', 'magazine', 'number_of_volumes')
         for key in keys:
@@ -80,9 +83,12 @@ def upload(couchdb_url=None, fuse_url=None):
             doc['genres'] = doc.pop('genre')
         except KeyError:
             pass
-        doc['type'] = 'series'
         doc['volumes'] = []
-        db.save(doc)
+
+        doc_id = replace_uri_prefixes(doc.pop('uri')[0])
+
+        s = Series(id=doc_id, **doc)
+        s.store(db)
 
 
 def fuse_setup(fuse_url=None):
@@ -101,30 +107,18 @@ def fuse_sync(couchdb_url=None, fuse_url=None):
         books_path=os.path.abspath(os.path.curdir),
         fuse_url=fuse_url, couchdb_url=couchdb_url)
     db = get_db(cfg)
-    docs = db.query('''
-    function(doc) {
-        if ( (doc.type == "series") && (doc.volumes.length > 0)) {
-            emit({
-                _id: doc._id,
-                name: doc.name,
-                description: doc.description,
-                genres: doc.genres,
-                dbpedia_uri: doc.dbpedia_uri,
-                author: doc.author,
-                magazine: doc.magazine
-            })
-        }
-    }
-    ''')
+    rows = Series.by_id(db)
 
-    def to_fusedict(item):
-        item = item.key
-        item['fuse:id'] = item.pop('_id')
-        item['fuse:type'] = 'series'
-        return item
+    ignore_keys = ('@class', '_rev')
+
+    def to_fusedict(doc):
+        doc = {k: v for k, v in doc.items() if k not in ignore_keys}
+        doc['fuse:id'] = doc.pop('_id')
+        doc['fuse:type'] = 'series'
+        return doc
 
     client = FuseClient(cfg.fuse_url)
-    for batch in batched(docs, 5000):
+    for batch in batched(rows, 5000):
         batch = [to_fusedict(x) for x in batch]
         client.update(batch, index=True)
 
