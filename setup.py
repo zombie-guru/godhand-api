@@ -19,6 +19,7 @@ setup(
         'cornice',
         'couchdb',
         'colander',
+        'oauth2client',
         'Pillow',
         'pyramid',
         'requests',

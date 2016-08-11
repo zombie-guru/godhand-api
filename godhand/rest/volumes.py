@@ -1,9 +1,9 @@
-from cornice import Service
 from pyramid.httpexceptions import HTTPNotFound
 import colander as co
 import couchdb.http
 
 from ..models import Volume
+from .utils import AuthenticatedService
 from .utils import PaginationSchema
 from .utils import paginate_query
 
@@ -12,11 +12,11 @@ class VolumePathSchema(co.MappingSchema):
     volume = co.SchemaNode(co.String(), location='path')
 
 
-volumes = Service(
+volumes = AuthenticatedService(
     name='volumes',
     path='/volumes',
 )
-volume = Service(
+volume = AuthenticatedService(
     name='volume',
     path='/volumes/{volume}',
     schema=VolumePathSchema,
