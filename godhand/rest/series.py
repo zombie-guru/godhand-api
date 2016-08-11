@@ -77,6 +77,8 @@ def get_series(request):
     except couchdb.http.ResourceNotFound:
         raise HTTPNotFound(series_id)
     else:
+        if doc is None:
+            raise HTTPNotFound(series_id)
         return dict(doc.items())
 
 
@@ -91,6 +93,9 @@ def upload_volume(request):
         doc = Series.load(db, series_id)
     except couchdb.http.ResourceNotFound:
         raise HTTPNotFound(series_id)
+    else:
+        if doc is None:
+            raise HTTPNotFound(series_id)
     volume_ids = []
     for key, value in request.POST.items():
         volume = Volume.from_archieve(

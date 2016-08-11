@@ -14,6 +14,9 @@ class TestEmpty(ApiTest):
         response = self.api.get('/volumes').json_body
         self.assertEquals(expected, response)
 
+        # test 404
+        self.api.get('/volumes/missing', status=404)
+
         # create a file
         cbt = CbtFile()
         with cbt.as_cbt() as f:

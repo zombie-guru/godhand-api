@@ -8,6 +8,8 @@ class TestEmpty(ApiTest):
         expected = {'series': [], 'offset': 0, 'total': 0, 'limit': 10}
         response = self.api.get('/series').json_body
         self.assertEquals(expected, response)
+        # test 404
+        self.api.get('/series/missing', status=404)
         # create a series
         response = self.api.post_json(
             '/series', {
@@ -58,6 +60,15 @@ class TestEmpty(ApiTest):
         response = self.api.get('/series/{}'.format(series_id)).json_body
         assert response.pop('_rev')
         self.assertEquals(expected, response)
+
+        # test 404 upload
+        with tmp_cbt(['page{:x}.jpg'.format(x) for x in range(15)]) as f:
+            self.api.post(
+                '/series/missing/volumes',
+                upload_files=[('input', 'volume-007.cbt', f.read())],
+                content_type='multipart/form-data',
+                status=404
+            )
 
         # add volume to series
         with tmp_cbt(['page{:x}.jpg'.format(x) for x in range(15)]) as f:
