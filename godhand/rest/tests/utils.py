@@ -9,6 +9,7 @@ import logging
 import os
 import tarfile
 import unittest
+import zipfile
 
 from fixtures import Fixture
 from fixtures import TempDir
@@ -93,6 +94,8 @@ def tmp_cbt(filenames):
 
 
 class CbtFile(object):
+    ext = '.cbt'
+
     @property
     def pages(self):
         widths = (256, 128, 64)
@@ -107,7 +110,7 @@ class CbtFile(object):
         } for n in range(15)]
 
     @contextlib.contextmanager
-    def as_cbt(self):
+    def packaged(self):
         with TemporaryFile() as f:
             with tarfile.open(fileobj=f, mode='w') as ar:
                 for o in self.pages:
@@ -118,6 +121,26 @@ class CbtFile(object):
                         im.save(mf, 'png')
                         mf.flush()
                         ar.add(mf.name, o['filename'])
+            f.flush()
+            f.seek(0)
+            yield f
+
+
+class CbzFile(CbtFile):
+    ext = '.cbz'
+
+    @contextlib.contextmanager
+    def packaged(self):
+        with TemporaryFile() as f:
+            with zipfile.ZipFile(f, mode='w') as ar:
+                for o in self.pages:
+                    with NamedTemporaryFile() as mf:
+                        im = Image.new(
+                            'RGB', (o['width'], o['height']))
+                        im.putpixel(o['black_pixel'], (0xfe, 0xfe, 0xfe))
+                        im.save(mf, 'png')
+                        mf.flush()
+                        ar.write(mf.name, o['filename'])
             f.flush()
             f.seek(0)
             yield f
