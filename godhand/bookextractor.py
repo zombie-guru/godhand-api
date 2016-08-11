@@ -1,5 +1,7 @@
+from tempfile import NamedTemporaryFile
 import os
 import re
+import subprocess
 import tarfile
 import zipfile
 
@@ -18,6 +20,8 @@ def from_filename(filename):
         return CbtBookExtractor
     elif re.match('^.*\.(cbz|zip)$', filename, re.IGNORECASE):
         return CbzBookExtractor
+    elif re.match('^.*\.(cbr|rar)$', filename, re.IGNORECASE):
+        return CbrBookExtractor
     raise ValueError('Invalid filanem for extraction: {!r}'.format(filename))
 
 
@@ -66,3 +70,12 @@ class CbzBookExtractor(BookExtractor):
     def extract(self):
         with zipfile.ZipFile(self.f) as ar:
             ar.extractall(self.path)
+
+
+class CbrBookExtractor(BookExtractor):
+    def extract(self):
+        with NamedTemporaryFile() as f:
+            for line in self.f:
+                f.write(f)
+            f.flush()
+            subprocess.check_call(['unrar', 'x', f.name, self.path])
