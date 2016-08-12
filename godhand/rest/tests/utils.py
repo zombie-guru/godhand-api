@@ -64,17 +64,40 @@ class ApiTest(unittest.TestCase):
         self.books_path = books_path = os.path.join(base_path, 'books')
         os.makedirs(books_path)
         self.app_test_fix = self.use_fixture(AppTestFixture())
-        self.api = TestApp(main(
-            {}, books_path=books_path,
-            couchdb_url='http://couchdb:mypassword@{}:8001'.format(
-                self.app_test_fix.get_ip()),
-            fuse_url='http://fuse:8000/api'
-        ))
+        self.api = TestApp(main({}, books_path=books_path, **self.envvars))
 
     def use_fixture(self, fix):
         self.addCleanup(fix.cleanUp)
         fix.setUp()
         return fix
+
+    @property
+    def envvars(self):
+        return {
+            'couchdb_url': 'http://couchdb:mypassword@{}:8001'.format(
+                self.app_test_fix.get_ip()),
+            'fuse_url': 'http://fuse:8000/api',
+            'disable_auth': True,
+        }
+
+
+class ApiTestWithAuth(ApiTest):
+    client_appname = 'my-client-appname'
+    client_id = 'my-client-id'
+    client_secret = 'my-client-secret'
+
+    @property
+    def envvars(self):
+        return {
+            'couchdb_url': 'http://couchdb:mypassword@{}:8001'.format(
+                self.app_test_fix.get_ip()),
+            'fuse_url': 'http://fuse:8000/api',
+            'disable_auth': False,
+            'google_client_appname': self.client_appname,
+            'google_client_id': self.client_id,
+            'google_client_secret': self.client_secret,
+            'auth_secret': 'my-auth-secret',
+        }
 
 
 @contextlib.contextmanager

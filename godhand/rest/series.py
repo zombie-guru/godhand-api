@@ -1,17 +1,18 @@
-from cornice import Service
 from pyramid.httpexceptions import HTTPNotFound
 import colander as co
 import couchdb.http
 
 from ..models import Series
 from ..models import Volume
+from .utils import AuthenticatedService
 from .utils import PaginationSchema
 from .utils import paginate_query
 
 
-series_collection = Service(name='series_collection', path='/series')
-series = Service(name='series', path='/series/{series}')
-series_volumes = Service(
+series_collection = AuthenticatedService(
+    name='series_collection', path='/series')
+series = AuthenticatedService(name='series', path='/series/{series}')
+series_volumes = AuthenticatedService(
     name='series_volumes', path='/series/{series}/volumes')
 
 
