@@ -127,3 +127,26 @@ class TestEmpty(ApiTest):
         self.assertEquals(response['total'], 100)
 
         self.assertNotEquals(r0['series'][:2], r1['series'][:2])
+
+        # store and get series progress
+        expected = {'volume_number': 0, 'page_number': 0}
+        response = self.api.get(
+            '/series/{}/reader-progress'.format(series_id)).json_body
+        for key in ('_id', '_rev', '@class'):
+            response.pop(key, None)
+        self.assertEquals(expected, response)
+
+        self.api.put_json(
+            '/series/{}/reader-progress'.format(series_id),
+            {'volume_number': 432, 'page_number': 7})
+        expected = {'volume_number': 432, 'page_number': 7}
+        response = self.api.get(
+            '/series/{}/reader-progress'.format(series_id)).json_body
+        for key in ('_id', '_rev', '@class'):
+            response.pop(key, None)
+        self.assertEquals(expected, response)
+
+        self.api.put_json(
+            '/series/missing/reader-progress',
+            {'volume_number': 432, 'page_number': 7}, status=404)
+        self.api.get('/series/missing/reader-progress', status=404)

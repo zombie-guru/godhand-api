@@ -35,3 +35,13 @@ class Series(Document):
     def add_volume(self, volume):
         self.volumes.append(
             {'id': volume.id, 'volume_number': volume.volume_number})
+
+
+class SeriesReaderProgress(Document):
+    class_ = TextField('@class', default='SeriesReaderProgress')
+    volume_number = IntegerField()
+    page_number = IntegerField()
+
+    @classmethod
+    def create_key(cls, user_id, series_id):
+        return 'progress:{}:{}'.format(user_id, series_id)

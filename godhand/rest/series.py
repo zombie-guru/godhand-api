@@ -3,6 +3,7 @@ import colander as co
 import couchdb.http
 
 from ..models import Series
+from ..models import SeriesReaderProgress
 from ..models import Volume
 from .utils import AuthenticatedService
 from .utils import PaginationSchema
@@ -14,6 +15,21 @@ series_collection = AuthenticatedService(
 series = AuthenticatedService(name='series', path='/series/{series}')
 series_volumes = AuthenticatedService(
     name='series_volumes', path='/series/{series}/volumes')
+series_reader_progress = AuthenticatedService(
+    name='series_reader_progress', path='/series/{series}/reader-progress')
+
+
+def get_doc_from_request(request):
+    db = request.registry['godhand:db']
+    v = request.validated
+    try:
+        doc = Series.load(db, v['series'])
+    except couchdb.http.ResourceNotFound:
+        raise HTTPNotFound(v['series'])
+    else:
+        if doc is None:
+            raise HTTPNotFound(v['series'])
+    return doc
 
 
 @series_collection.get(schema=PaginationSchema)
@@ -71,16 +87,8 @@ class SeriesPathSchema(co.MappingSchema):
 def get_series(request):
     """ Get a series by key.
     """
-    db = request.registry['godhand:db']
-    series_id = request.validated['series']
-    try:
-        doc = Series.load(db, series_id)
-    except couchdb.http.ResourceNotFound:
-        raise HTTPNotFound(series_id)
-    else:
-        if doc is None:
-            raise HTTPNotFound(series_id)
-        return dict(doc.items())
+    doc = get_doc_from_request(request)
+    return dict(doc.items())
 
 
 @series_volumes.post(
@@ -88,15 +96,8 @@ def get_series(request):
 def upload_volume(request):
     """ Create volume and return unique ids.
     """
+    doc = get_doc_from_request(request)
     db = request.registry['godhand:db']
-    series_id = request.validated['series']
-    try:
-        doc = Series.load(db, series_id)
-    except couchdb.http.ResourceNotFound:
-        raise HTTPNotFound(series_id)
-    else:
-        if doc is None:
-            raise HTTPNotFound(series_id)
     volume_ids = []
     for key, value in request.POST.items():
         volume = Volume.from_archieve(
@@ -109,3 +110,31 @@ def upload_volume(request):
         volume_ids.append(volume.id)
     doc.store(db)
     return {'volumes': volume_ids}
+
+
+class StoreReaderProgressSchema(SeriesPathSchema):
+    volume_number = co.SchemaNode(co.Integer(), validator=co.Range(min=0))
+    page_number = co.SchemaNode(co.Integer(), validator=co.Range(min=0))
+
+
+@series_reader_progress.put(schema=StoreReaderProgressSchema)
+def store_reader_progress(request):
+    get_doc_from_request(request)
+    v = request.validated
+    key = SeriesReaderProgress.create_key(
+        request.authenticated_userid, v['series'])
+    progress = SeriesReaderProgress(
+        volume_number=v['volume_number'], page_number=v['page_number'], id=key)
+    progress.store(request.registry['godhand:db'])
+
+
+@series_reader_progress.get(schema=SeriesPathSchema)
+def get_reader_progress(request):
+    get_doc_from_request(request)
+    v = request.validated
+    key = SeriesReaderProgress.create_key(
+        request.authenticated_userid, v['series'])
+    p = SeriesReaderProgress.load(request.registry['godhand:db'], key)
+    if p:
+        return dict(p.items())
+    return {'volume_number': 0, 'page_number': 0}
