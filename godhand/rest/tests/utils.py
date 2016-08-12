@@ -14,6 +14,7 @@ import zipfile
 from fixtures import Fixture
 from fixtures import TempDir
 from webtest import TestApp
+import couchdb.client
 
 
 HERE = os.path.dirname(__file__)
@@ -65,6 +66,7 @@ class ApiTest(unittest.TestCase):
         os.makedirs(books_path)
         self.app_test_fix = self.use_fixture(AppTestFixture())
         self.api = TestApp(main({}, books_path=books_path, **self.envvars))
+        self.db = couchdb.client.Server(self.envvars['couchdb_url'])['godhand']
 
     def use_fixture(self, fix):
         self.addCleanup(fix.cleanUp)

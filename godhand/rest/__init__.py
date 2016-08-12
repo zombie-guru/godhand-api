@@ -9,7 +9,6 @@ import couchdb.client
 
 from ..config import GodhandConfiguration
 from ..utils import wait_for_couchdb
-from ..models import sync
 
 
 def main(global_config, **settings):
@@ -36,7 +35,6 @@ def main(global_config, **settings):
         authdb = client.create('auth')
     except couchdb.http.PreconditionFailed:
         authdb = client['auth']
-    sync(db)
     config.registry['godhand:books_path'] = books_path
     config.registry['godhand:db'] = db
     config.registry['godhand:authdb'] = authdb

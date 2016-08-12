@@ -4,8 +4,6 @@ import couchdb.http
 
 from ..models import Volume
 from .utils import AuthenticatedService
-from .utils import PaginationSchema
-from .utils import paginate_query
 
 
 class VolumePathSchema(co.MappingSchema):
@@ -21,28 +19,6 @@ volume = AuthenticatedService(
     path='/volumes/{volume}',
     schema=VolumePathSchema,
 )
-
-
-@volumes.get(schema=PaginationSchema)
-def get_volumes(request):
-    """ Get all volumes.
-
-    .. code-block:: js
-
-        {
-            "volumes": [
-                {
-                    "id": "myid",
-                    "volume_number": 0,
-                }
-            ],
-            "offset": 0,
-            "total": 1
-        }
-
-    """
-    obj = paginate_query(request, Volume.by_id, 'volumes')
-    return obj
 
 
 @volumes.post(content_type=('multipart/form-data',))

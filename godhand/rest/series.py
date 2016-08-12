@@ -6,8 +6,6 @@ from ..models import Series
 from ..models import SeriesReaderProgress
 from ..models import Volume
 from .utils import AuthenticatedService
-from .utils import PaginationSchema
-from .utils import paginate_query
 
 
 series_collection = AuthenticatedService(
@@ -30,13 +28,6 @@ def get_doc_from_request(request):
         if doc is None:
             raise HTTPNotFound(v['series'])
     return doc
-
-
-@series_collection.get(schema=PaginationSchema)
-def get_series_collection(request):
-    """ Get all series.
-    """
-    return paginate_query(request, Series.by_id, 'series')
 
 
 class PostSeriesCollectionSchema(co.MappingSchema):
