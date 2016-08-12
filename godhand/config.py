@@ -52,4 +52,4 @@ class GodhandConfigurationSchema(co.MappingSchema):
     google_client_id = co.SchemaNode(co.String(), missing=None)
     google_client_secret = co.SchemaNode(co.String(), missing=None)
     disable_auth = co.SchemaNode(co.Boolean(), missing=False)
-    auth_secret = co.SchemaNode(co.String(), missing=False)
+    auth_secret = co.SchemaNode(co.String(), missing=None)

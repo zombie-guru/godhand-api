@@ -96,6 +96,7 @@ class ApiTestWithAuth(ApiTest):
             'google_client_appname': self.client_appname,
             'google_client_id': self.client_id,
             'google_client_secret': self.client_secret,
+            'auth_secret': 'my-auth-secret',
         }
 
 

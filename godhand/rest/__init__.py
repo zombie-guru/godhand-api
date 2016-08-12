@@ -21,6 +21,7 @@ def main(global_config, **settings):
         google_client_id=settings.get('google_client_id'),
         google_client_secret=settings.get('google_client_secret'),
         google_client_appname=settings.get('google_client_appname'),
+        auth_secret=settings.get('auth_secret'),
     )
     books_path = os.path.abspath(cfg.books_path)
     config = Configurator(settings=settings)
