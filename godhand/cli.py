@@ -7,13 +7,11 @@ import sys
 import couchdb.client
 import couchdb.http
 
-from .fuseclient import FuseClient
 from .opendata import iterate_manga
 from .opendata import replace_uri_prefixes
 from .config import GodhandConfiguration
 from .models import Series
 from .utils import wait_for_couchdb
-from .utils import batched
 
 
 LOG = logging.getLogger(__file__)
@@ -28,14 +26,6 @@ def main():
 
     p = s.add_parser('upload')
     p.add_argument('--couchdb-url', default=None)
-    p.add_argument('--fuse-url', default=None)
-
-    p = s.add_parser('fuse-setup')
-    p.add_argument('--fuse-url', default=None)
-
-    p = s.add_parser('fuse-sync')
-    p.add_argument('--couchdb-url', default=None)
-    p.add_argument('--fuse-url', default=None)
 
     args = ap.parse_args()
     logging.basicConfig(
@@ -45,11 +35,7 @@ def main():
     if args.cmd == 'dbpedia-dump':
         dbpedia_dump()
     elif args.cmd == 'upload':
-        upload(args.couchdb_url, args.fuse_url)
-    elif args.cmd == 'fuse-setup':
-        fuse_setup(args.fuse_url)
-    elif args.cmd == 'fuse-sync':
-        fuse_sync(args.couchdb_url, args.fuse_url)
+        upload(args.couchdb_url)
 
 
 def dbpedia_dump():
@@ -58,12 +44,12 @@ def dbpedia_dump():
         sys.stdout.write('\n')
 
 
-def upload(couchdb_url=None, fuse_url=None, lines=None):
+def upload(couchdb_url=None, lines=None):
     if lines is None:
         lines = sys.stdin
     cfg = GodhandConfiguration.from_env(
         books_path=os.path.abspath(os.path.curdir),
-        couchdb_url=couchdb_url, fuse_url=fuse_url)
+        couchdb_url=couchdb_url)
     db = get_db(cfg)
     for n_line, line in enumerate(lines):
         if n_line and (n_line % 100) == 0:
@@ -89,38 +75,6 @@ def upload(couchdb_url=None, fuse_url=None, lines=None):
 
         s = Series(id=doc_id, **doc)
         s.store(db)
-
-
-def fuse_setup(fuse_url=None):
-    cfg = GodhandConfiguration.from_env(
-        books_path=os.path.abspath(os.path.curdir),
-        fuse_url=fuse_url, couchdb_url='http://couchdb')
-    client = FuseClient(cfg.fuse_url)
-    client.stop_fuse()
-    client.setup_fuse()
-    client.start_fuse()
-    client.wait_until_ready()
-
-
-def fuse_sync(couchdb_url=None, fuse_url=None):
-    cfg = GodhandConfiguration.from_env(
-        books_path=os.path.abspath(os.path.curdir),
-        fuse_url=fuse_url, couchdb_url=couchdb_url)
-    db = get_db(cfg)
-    rows = Series.by_id(db)
-
-    ignore_keys = ('@class', '_rev')
-
-    def to_fusedict(doc):
-        doc = {k: v for k, v in doc.items() if k not in ignore_keys}
-        doc['fuse:id'] = doc.pop('_id')
-        doc['fuse:type'] = 'series'
-        return doc
-
-    client = FuseClient(cfg.fuse_url)
-    for batch in batched(rows, 5000):
-        batch = [to_fusedict(x) for x in batch]
-        client.update(batch, index=True)
 
 
 def get_db(cfg):

@@ -76,7 +76,6 @@ class ApiTest(unittest.TestCase):
         return {
             'couchdb_url': 'http://couchdb:mypassword@{}:8001'.format(
                 self.app_test_fix.get_ip()),
-            'fuse_url': 'http://fuse:8000/api',
             'disable_auth': True,
         }
 
@@ -91,7 +90,6 @@ class ApiTestWithAuth(ApiTest):
         return {
             'couchdb_url': 'http://couchdb:mypassword@{}:8001'.format(
                 self.app_test_fix.get_ip()),
-            'fuse_url': 'http://fuse:8000/api',
             'disable_auth': False,
             'google_client_appname': self.client_appname,
             'google_client_id': self.client_id,
