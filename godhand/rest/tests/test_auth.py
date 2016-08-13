@@ -132,3 +132,7 @@ class TestSingleUserLoggedIn(RootLoggedInTest):
                 content_type='multipart/form-data',
                 status=403
             )
+
+    def test_permission_tests(self):
+        self.api.get('/permissions/view/test')
+        self.api.get('/permissions/write/test', status=403)

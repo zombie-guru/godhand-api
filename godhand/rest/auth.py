@@ -2,6 +2,7 @@ import hashlib
 import os
 
 from oauth2client import client
+from pyramid.httpexceptions import HTTPForbidden
 from pyramid.httpexceptions import HTTPUnauthorized
 from pyramid.httpexceptions import HTTPNotFound
 from pyramid.security import forget
@@ -13,6 +14,16 @@ from ..models.auth import AntiForgeryToken
 from ..models.auth import User
 from .utils import GodhandService
 
+
+class PermissionPathSchema(co.MappingSchema):
+    permission = co.SchemaNode(
+        co.String(), location='path', validator=co.OneOf(['view', 'write']))
+
+
+class UserPathSchema(co.MappingSchema):
+    userid = co.SchemaNode(co.String(), location='path', validator=co.Email())
+
+
 user = GodhandService(
     name='user',
     path='/users/{userid}',
@@ -22,6 +33,17 @@ logout = GodhandService(
     name='logout',
     path='/logout',
     permission='authenticate',
+)
+permission_test = GodhandService(
+    name='permission_check',
+    path='/permissions/{permission}/test',
+    permission='authenticate',
+    schema=PermissionPathSchema,
+    description='''
+    Test if current user a permission.
+
+    Useful for auth_request in nginx.
+    '''
 )
 oauth_init = GodhandService(
     name='oauth-init',
@@ -33,10 +55,6 @@ oauth_callback = GodhandService(
     path='/oauth-callback',
     permission='authenticate',
 )
-
-
-class UserPathSchema(co.MappingSchema):
-    userid = co.SchemaNode(co.String(), location='path', validator=co.Email())
 
 
 class UpdateUserSchema(UserPathSchema):
@@ -85,6 +103,14 @@ def user_logout(request):
     response = request.response
     response.headers.extend(forget(request))
     return response
+
+
+@permission_test.get()
+def test_permission(request):
+    v = request.validated
+    if not request.has_permission(v['permission']):
+        raise HTTPForbidden()
+    return request.response
 
 
 def create_anti_forgery_token():
