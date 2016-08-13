@@ -5,11 +5,11 @@ from PIL import Image
 
 from .utils import CbtFile
 from .utils import CbzFile
-from .utils import RootLoggedInTest
+from .utils import WriteUserLoggedInTest
 from .utils import tmp_cbt
 
 
-class TestEmpty(RootLoggedInTest):
+class TestEmpty(WriteUserLoggedInTest):
     def test_get_missing(self):
         self.api.get('/series/missing', status=404)
 
@@ -61,7 +61,7 @@ class TestEmpty(RootLoggedInTest):
         self.assertEquals(expected, response)
 
 
-class SingleSeriesTest(RootLoggedInTest):
+class SingleSeriesTest(WriteUserLoggedInTest):
     def setUp(self):
         super(SingleSeriesTest, self).setUp()
         response = self.api.post_json(

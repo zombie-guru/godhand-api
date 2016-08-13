@@ -112,6 +112,15 @@ class RootLoggedInTest(ApiTest):
         self.oauth2_login(self.root_email)
 
 
+class WriteUserLoggedInTest(ApiTest):
+    def setUp(self):
+        super(WriteUserLoggedInTest, self).setUp()
+        self.oauth2_login(self.root_email)
+        self.api.put_json('/users/write%40company.com', {'groups': ['admin']})
+        self.api.post('/logout')
+        self.oauth2_login('write@company.com')
+
+
 @contextlib.contextmanager
 def tmp_cbt(filenames):
     with TemporaryFile() as f:
