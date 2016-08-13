@@ -42,7 +42,10 @@ class PostSeriesCollectionSchema(co.MappingSchema):
         genre = co.SchemaNode(co.String())
 
 
-@series_collection.post(schema=PostSeriesCollectionSchema)
+@series_collection.post(
+    schema=PostSeriesCollectionSchema,
+    permission='write',
+)
 def create_series(request):
     """ Create a series.
 
@@ -86,7 +89,10 @@ def get_series(request):
 
 
 @series_volumes.post(
-    schema=SeriesPathSchema, content_type=('multipart/form-data',))
+    schema=SeriesPathSchema,
+    content_type=('multipart/form-data',),
+    permission='write',
+)
 def upload_volume(request):
     """ Create volume and return unique ids.
     """
@@ -114,7 +120,10 @@ class StoreReaderProgressSchema(SeriesPathSchema):
     page_number = co.SchemaNode(co.Integer(), validator=co.Range(min=0))
 
 
-@series_reader_progress.put(schema=StoreReaderProgressSchema)
+@series_reader_progress.put(
+    schema=StoreReaderProgressSchema,
+    permission='view',
+)
 def store_reader_progress(request):
     get_doc_from_request(request)
     v = request.validated
@@ -125,7 +134,10 @@ def store_reader_progress(request):
     progress.store(request.registry['godhand:db'])
 
 
-@series_reader_progress.get(schema=SeriesPathSchema)
+@series_reader_progress.get(
+    schema=SeriesPathSchema,
+    permission='view',
+)
 def get_reader_progress(request):
     get_doc_from_request(request)
     v = request.validated

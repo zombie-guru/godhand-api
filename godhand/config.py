@@ -21,13 +21,14 @@ class GodhandConfiguration(object):
 
     def __init__(self, couchdb_url, books_path,
                  google_client_appname, google_client_id, google_client_secret,
-                 auth_secret):
+                 auth_secret, root_email):
         self.couchdb_url = couchdb_url
         self.books_path = books_path
         self.auth_secret = auth_secret
         self.google_client_appname = google_client_appname
         self.google_client_id = google_client_id
         self.google_client_secret = google_client_secret
+        self.root_email = root_email
 
     def __repr__(self):
         attributes = ['{}={!r}'.format(k, getattr(self, k)) for k in (
@@ -49,3 +50,4 @@ class GodhandConfigurationSchema(co.MappingSchema):
     google_client_id = co.SchemaNode(co.String(), missing=None)
     google_client_secret = co.SchemaNode(co.String(), missing=None)
     auth_secret = co.SchemaNode(co.String())
+    root_email = co.SchemaNode(co.String())

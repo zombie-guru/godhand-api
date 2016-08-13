@@ -1,18 +1,30 @@
 import hashlib
 import os
 
-from cornice import Service
 from oauth2client import client
 from pyramid.httpexceptions import HTTPUnauthorized
 from pyramid.security import remember
 import colander as co
 import requests
 
-from godhand.models.auth import AntiForgeryToken
+from ..models.auth import AntiForgeryToken
+from .utils import GodhandService
 
-user = Service(name='user', path='/user')
-oauth_init = Service(name='oauth-init', path='/oauth-init')
-oauth_callback = Service(name='oauth-callback', path='/oauth-callback')
+user = GodhandService(
+    name='user',
+    path='/user',
+    permission='authenticate',
+)
+oauth_init = GodhandService(
+    name='oauth-init',
+    path='/oauth-init',
+    permission='authenticate',
+)
+oauth_callback = GodhandService(
+    name='oauth-callback',
+    path='/oauth-callback',
+    permission='authenticate',
+)
 
 
 def create_anti_forgery_token():

@@ -9,7 +9,24 @@ from .utils import CbzFile
 from .utils import tmp_cbt
 
 
-class TestEmpty(ApiTest):
+class LoggedInTest(ApiTest):
+    def setUp(self):
+        super(LoggedInTest, self).setUp()
+        requests = self.mocks['godhand.rest.auth.requests']
+        client = self.mocks['godhand.rest.auth.client']
+        state = self.api.get('/oauth-init').json_body.pop('state')
+        requests.post.return_value.status_code = 200
+        requests.post.return_value.json.return_value = {
+            'id_token': 'myidtoken',
+        }
+        client.verify_id_token.return_value = {
+            'email_verified': True, 'email': self.root_email,
+        }
+        self.api.get(
+            '/oauth-callback', params={'state': state, 'code': 'mycode'})
+
+
+class TestEmpty(LoggedInTest):
     def test_get_missing(self):
         self.api.get('/series/missing', status=404)
 
@@ -61,7 +78,7 @@ class TestEmpty(ApiTest):
         self.assertEquals(expected, response)
 
 
-class SingleSeriesTest(ApiTest):
+class SingleSeriesTest(LoggedInTest):
     def setUp(self):
         super(SingleSeriesTest, self).setUp()
         response = self.api.post_json(

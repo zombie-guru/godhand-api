@@ -1,23 +1,10 @@
-import mock
-
 from .utils import ApiTest
 
 
 class TestLoggedOut(ApiTest):
-    def setUp(self):
-        super(TestLoggedOut, self).setUp()
-        self.mocks = {
-            'requests': mock.patch('godhand.rest.auth.requests').start(),
-            'client': mock.patch('godhand.rest.auth.client').start(),
-        }
-
-    def tearDown(self):
-        super(TestLoggedOut, self).tearDown()
-        mock.patch.stopall()
-
     def test_success(self):
-        requests = self.mocks['requests']
-        client = self.mocks['client']
+        requests = self.mocks['godhand.rest.auth.requests']
+        client = self.mocks['godhand.rest.auth.client']
 
         expected = {
             'client_id': self.client_id,
@@ -59,8 +46,8 @@ class TestLoggedOut(ApiTest):
         )
 
     def test_bad_anti_forgery_token(self):
-        requests = self.mocks['requests']
-        client = self.mocks['client']
+        requests = self.mocks['godhand.rest.auth.requests']
+        client = self.mocks['godhand.rest.auth.client']
 
         requests.post.return_value.status_code = 200
         requests.post.return_value.json.return_value = {
@@ -76,8 +63,8 @@ class TestLoggedOut(ApiTest):
         )
 
     def test_bad_code(self):
-        requests = self.mocks['requests']
-        client = self.mocks['client']
+        requests = self.mocks['godhand.rest.auth.requests']
+        client = self.mocks['godhand.rest.auth.client']
 
         expected = {
             'client_id': self.client_id,

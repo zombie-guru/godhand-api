@@ -12,6 +12,7 @@ from fixtures import TempDir
 from webtest import TestApp
 import couchdb.client
 import couchdb.http
+import mock
 
 from godhand.tests.utils import get_docker_ip
 
@@ -24,6 +25,7 @@ LOG = logging.getLogger('tests')
 
 class ApiTest(unittest.TestCase):
     maxDiff = 5000
+    root_email = 'root@domain.com'
     client_appname = 'my-client-appname'
     client_id = 'my-client-id'
     client_secret = 'my-client-secret'
@@ -42,9 +44,15 @@ class ApiTest(unittest.TestCase):
             google_client_id=self.client_id,
             google_client_secret=self.client_secret,
             auth_secret='my-auth-secret',
+            root_email=self.root_email,
         ))
         self.db = couchdb.client.Server(self.couchdb_url)['godhand']
         self.addCleanup(self._cleanDb)
+        self.addCleanup(mock.patch.stopall)
+        self.mocks = {key: mock.patch(key).start() for key in (
+            'godhand.rest.auth.client',
+            'godhand.rest.auth.requests',
+        )}
 
     def use_fixture(self, fix):
         self.addCleanup(fix.cleanUp)

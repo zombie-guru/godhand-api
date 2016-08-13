@@ -20,7 +20,9 @@ volume = GodhandService(
 )
 
 
-@volume.get()
+@volume.get(
+    permission='view',
+)
 def get_volume(request):
     """ Get a volume by ID.
 
@@ -52,7 +54,10 @@ class PutVolumeSchema(VolumePathSchema):
         co.Integer(), validator=co.Range(min=0), missing=None)
 
 
-@volume.put(schema=PutVolumeSchema)
+@volume.put(
+    schema=PutVolumeSchema,
+    permission='view',
+)
 def update_volume_meta(request):
     """ Update volume metadata.
     """

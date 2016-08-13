@@ -4,10 +4,12 @@ import re
 from pyramid.authentication import AuthTktAuthenticationPolicy
 from pyramid.authorization import ACLAuthorizationPolicy
 from pyramid.config import Configurator
+from pyramid.session import SignedCookieSessionFactory
 import couchdb.client
 import couchdb.http
 
 from ..config import GodhandConfiguration
+from ..models.auth import User
 from ..utils import wait_for_couchdb
 from .utils import groupfinder
 
@@ -21,10 +23,11 @@ def main(global_config, **settings):
         google_client_secret=settings.get('google_client_secret'),
         google_client_appname=settings.get('google_client_appname'),
         auth_secret=settings.get('auth_secret'),
+        root_email=settings.get('root_email'),
     )
     books_path = os.path.abspath(cfg.books_path)
     config = Configurator(settings=settings)
-    setup_db(config, cfg.couchdb_url)
+    setup_db(config, cfg.couchdb_url, cfg.root_email)
     setup_acl(config, cfg.auth_secret)
     config.include('cornice')
     config.scan('.', ignore=[re.compile('^.*tests$').match])
@@ -34,7 +37,7 @@ def main(global_config, **settings):
     return config.make_wsgi_app()
 
 
-def setup_db(config, couchdb_url):
+def setup_db(config, couchdb_url, root_email):
     wait_for_couchdb(couchdb_url)
     client = couchdb.client.Server(couchdb_url)
     try:
@@ -47,10 +50,14 @@ def setup_db(config, couchdb_url):
         authdb = client['auth']
     config.registry['godhand:db'] = db
     config.registry['godhand:authdb'] = authdb
+    root = User(email=root_email, groups=['admin', 'user'], id='user:root')
+    root.store(authdb)
+    User.by_email.sync(authdb)
 
 
 def setup_acl(config, secret):
-    authz_policy = ACLAuthorizationPolicy()
-    config.set_authorization_policy(authz_policy)
+    config.set_authorization_policy(ACLAuthorizationPolicy())
     config.set_authentication_policy(AuthTktAuthenticationPolicy(
         secret, callback=groupfinder, hashalg='sha512'))
+    config.set_session_factory(SignedCookieSessionFactory(secret))
+    config.set_default_permission('edit')
