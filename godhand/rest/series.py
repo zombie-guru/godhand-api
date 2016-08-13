@@ -5,15 +5,15 @@ import couchdb.http
 from ..models import Series
 from ..models import SeriesReaderProgress
 from ..models import Volume
-from .utils import AuthenticatedService
+from .utils import GodhandService
 
 
-series_collection = AuthenticatedService(
+series_collection = GodhandService(
     name='series_collection', path='/series')
-series = AuthenticatedService(name='series', path='/series/{series}')
-series_volumes = AuthenticatedService(
+series = GodhandService(name='series', path='/series/{series}')
+series_volumes = GodhandService(
     name='series_volumes', path='/series/{series}/volumes')
-series_reader_progress = AuthenticatedService(
+series_reader_progress = GodhandService(
     name='series_reader_progress', path='/series/{series}/reader-progress')
 
 
@@ -77,7 +77,7 @@ class SeriesPathSchema(co.MappingSchema):
     series = co.SchemaNode(co.String(), location='path')
 
 
-@series.get(schema=SeriesPathSchema)
+@series.get(schema=SeriesPathSchema, permission='view')
 def get_series(request):
     """ Get a series by key.
     """

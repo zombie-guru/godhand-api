@@ -3,18 +3,18 @@ import colander as co
 import couchdb.http
 
 from ..models import Volume
-from .utils import AuthenticatedService
+from .utils import GodhandService
 
 
 class VolumePathSchema(co.MappingSchema):
     volume = co.SchemaNode(co.String(), location='path')
 
 
-volumes = AuthenticatedService(
+volumes = GodhandService(
     name='volumes',
     path='/volumes',
 )
-volume = AuthenticatedService(
+volume = GodhandService(
     name='volume',
     path='/volumes/{volume}',
     schema=VolumePathSchema,

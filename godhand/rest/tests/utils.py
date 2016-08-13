@@ -78,7 +78,7 @@ class ApiTest(unittest.TestCase):
         return {
             'couchdb_url': 'http://couchdb:mypassword@{}:8001'.format(
                 self.app_test_fix.get_ip()),
-            'disable_auth': True,
+            'auth_secret': 'my-auth-secret',
         }
 
 
@@ -92,7 +92,6 @@ class ApiTestWithAuth(ApiTest):
         return {
             'couchdb_url': 'http://couchdb:mypassword@{}:8001'.format(
                 self.app_test_fix.get_ip()),
-            'disable_auth': False,
             'google_client_appname': self.client_appname,
             'google_client_id': self.client_id,
             'google_client_secret': self.client_secret,

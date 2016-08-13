@@ -1,14 +1,18 @@
 from functools import partial
 
 from cornice import Service
-from pyramid.httpexceptions import HTTPUnauthorized
+from pyramid.security import Allow
+from pyramid.security import Everyone
 
 
-def is_logged_in(request):
-    if request.registry['godhand:cfg'].disable_auth:
-        return
-    if request.authenticated_userid is None:
-        raise HTTPUnauthorized()
+def groupfinder(userid, request):
+    return [userid]
 
 
-AuthenticatedService = partial(Service, acl=is_logged_in)
+def default_acl(request):
+    return [
+        (Allow, Everyone, ('view', 'write')),
+    ]
+
+
+GodhandService = partial(Service, acl=default_acl, permission='view')
