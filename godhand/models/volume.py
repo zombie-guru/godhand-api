@@ -9,15 +9,10 @@ from couchdb.mapping import IntegerField
 from couchdb.mapping import ListField
 from couchdb.mapping import Mapping
 from couchdb.mapping import TextField
-from couchdb.mapping import ViewField
 
 from .. import bookextractor
 
 image_regex = re.compile('^.*\.(jpg|jpeg|gif|png|tiff)$', re.IGNORECASE)
-
-
-def sync(db):
-    Volume.by_id.sync(db)
 
 
 class Volume(Document):
@@ -46,14 +41,6 @@ class Volume(Document):
         height=IntegerField(),
         orientation=TextField(),
     )))
-
-    by_id = ViewField('volume', '''
-        function(doc) {
-            if ( doc['@class'] === 'Volume') {
-                emit(doc.id, doc);
-            }
-        }
-    ''')
 
 
 def guess_volume_number(filename):

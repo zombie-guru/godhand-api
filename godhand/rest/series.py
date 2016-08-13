@@ -6,8 +6,6 @@ from ..models import Series
 from ..models import SeriesReaderProgress
 from ..models import Volume
 from .utils import AuthenticatedService
-from .utils import PaginationSchema
-from .utils import paginate_query
 
 
 series_collection = AuthenticatedService(
@@ -30,13 +28,6 @@ def get_doc_from_request(request):
         if doc is None:
             raise HTTPNotFound(v['series'])
     return doc
-
-
-@series_collection.get(schema=PaginationSchema)
-def get_series_collection(request):
-    """ Get all series.
-    """
-    return paginate_query(request, Series.by_id, 'series')
 
 
 class PostSeriesCollectionSchema(co.MappingSchema):
@@ -74,6 +65,9 @@ def create_series(request):
     """
     doc = Series(**request.validated)
     doc.store(request.registry['godhand:db'])
+    Series.by_meta.sync(request.registry['godhand:db'])
+    Series.by_genre.sync(request.registry['godhand:db'])
+    Series.by_series.sync(request.registry['godhand:db'])
     return {
         'series': [doc.id],
     }
@@ -109,6 +103,9 @@ def upload_volume(request):
         doc.add_volume(volume)
         volume_ids.append(volume.id)
     doc.store(db)
+    Series.by_meta.sync(request.registry['godhand:db'])
+    Series.by_genre.sync(request.registry['godhand:db'])
+    Series.by_series.sync(request.registry['godhand:db'])
     return {'volumes': volume_ids}
 
 

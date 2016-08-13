@@ -7,10 +7,6 @@ from couchdb.mapping import TextField
 from couchdb.mapping import ViewField
 
 
-def sync(db):
-    Series.by_id.sync(db)
-
-
 class Series(Document):
     class_ = TextField('@class', default='Series')
     name = TextField()
@@ -24,12 +20,33 @@ class Series(Document):
         volume_number=IntegerField(),
     )))
 
-    by_id = ViewField('series', '''
-        function(doc) {
-            if ( doc['@class'] === 'Series') {
-                emit(doc.id, doc);
-            }
+    by_meta = ViewField('by_meta', '''
+    function(doc) {
+        if ((doc['@class'] === 'Series') && (doc.volumes.length > 0)) {
+            emit([doc.name], {'field': 'Series', 'value': doc.name});
+            doc.genres.map(function(genre) {
+                emit([genre], {'field': 'Genre', 'value': genre});
+            });
         }
+    }
+    ''')
+
+    by_genre = ViewField('by_genre', '''
+    function(doc) {
+        if ((doc['@class'] === 'Genre') && (doc.volumes.length > 0)) {
+            doc.genres.map(function(genre) {
+                emit([genre], doc);
+            });
+        }
+    }
+    ''')
+
+    by_series = ViewField('by_series', '''
+    function(doc) {
+        if ((doc['@class'] === 'Series') && (doc.volumes.length > 0)) {
+            emit([doc.name], doc);
+        }
+    }
     ''')
 
     def add_volume(self, volume):

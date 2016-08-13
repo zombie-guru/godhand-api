@@ -6,17 +6,16 @@ from pyramid.authorization import ACLAuthorizationPolicy
 from pyramid.config import Configurator
 from pyramid.session import SignedCookieSessionFactory
 import couchdb.client
+import couchdb.http
 
 from ..config import GodhandConfiguration
 from ..utils import wait_for_couchdb
-from ..models import sync
 
 
 def main(global_config, **settings):
     cfg = GodhandConfiguration.from_env(
         books_path=settings.get('books_path', None),
         couchdb_url=settings.get('couchdb_url', None),
-        fuse_url=settings.get('fuse_url', None),
         disable_auth=settings.get('disable_auth', None),
         google_client_id=settings.get('google_client_id'),
         google_client_secret=settings.get('google_client_secret'),
@@ -37,7 +36,6 @@ def main(global_config, **settings):
         authdb = client.create('auth')
     except couchdb.http.PreconditionFailed:
         authdb = client['auth']
-    sync(db)
     config.registry['godhand:books_path'] = books_path
     config.registry['godhand:db'] = db
     config.registry['godhand:authdb'] = authdb

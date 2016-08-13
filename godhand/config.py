@@ -19,12 +19,11 @@ class GodhandConfiguration(object):
             for kw in kws
         }
 
-    def __init__(self, couchdb_url, books_path, fuse_url, disable_auth,
+    def __init__(self, couchdb_url, books_path, disable_auth,
                  google_client_appname, google_client_id, google_client_secret,
                  auth_secret):
         self.couchdb_url = couchdb_url
         self.books_path = books_path
-        self.fuse_url = fuse_url
         self.auth_secret = auth_secret
         self.disable_auth = disable_auth
         self.google_client_appname = google_client_appname
@@ -33,7 +32,7 @@ class GodhandConfiguration(object):
 
     def __repr__(self):
         attributes = ['{}={!r}'.format(k, getattr(self, k)) for k in (
-            'couchdb_url', 'books_path', 'fuse_url', 'disable_auth')]
+            'couchdb_url', 'books_path', 'disable_auth')]
         return 'GodhandConfiguration<{}>'.format(
             ','.join(attributes)
         )
@@ -46,7 +45,6 @@ def is_path(node, appstruct):
 
 class GodhandConfigurationSchema(co.MappingSchema):
     couchdb_url = co.SchemaNode(co.String(), validator=co.url)
-    fuse_url = co.SchemaNode(co.String(), validator=co.url)
     books_path = co.SchemaNode(co.String(), validator=is_path)
     google_client_appname = co.SchemaNode(co.String(), missing=None)
     google_client_id = co.SchemaNode(co.String(), missing=None)

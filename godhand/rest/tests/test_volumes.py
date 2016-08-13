@@ -10,11 +10,6 @@ from .utils import CbzFile
 
 class TestEmpty(ApiTest):
     def test_create_volume(self):
-        # retrieve volumes
-        expected = {'volumes': [], 'offset': 0, 'total': 0, 'limit': 10}
-        response = self.api.get('/volumes').json_body
-        self.assertEquals(expected, response)
-
         # test 404
         self.api.get('/volumes/missing', status=404)
 
