@@ -7,6 +7,7 @@ from pyramid.config import Configurator
 from pyramid.session import SignedCookieSessionFactory
 import couchdb.client
 import couchdb.http
+import pyramid.security
 
 from ..config import GodhandConfiguration
 from ..models.auth import User
@@ -50,6 +51,7 @@ def setup_db(config, couchdb_url, root_email):
         authdb = client['auth']
     config.registry['godhand:db'] = db
     config.registry['godhand:authdb'] = authdb
+    # config.add_request_method(has_permission)
     root = User(email=root_email, groups=['admin', 'user'], id='user:root')
     root.store(authdb)
     User.by_email.sync(authdb)
@@ -61,3 +63,9 @@ def setup_acl(config, secret):
         secret, callback=groupfinder, hashalg='sha512'))
     config.set_session_factory(SignedCookieSessionFactory(secret))
     config.set_default_permission('edit')
+
+
+def has_permission(request, permission, context=None):
+    if context is None:
+        context = request.context
+    return pyramid.security.has_permission(permission, context, request)
