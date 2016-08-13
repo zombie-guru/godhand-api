@@ -2,6 +2,7 @@ import mock
 
 from .utils import ApiTest
 from .utils import RootLoggedInTest
+from .utils import tmp_cbt
 
 
 class TestLoggedOut(ApiTest):
@@ -99,3 +100,35 @@ class TestSingleUser(RootLoggedInTest):
     def test_delete(self):
         self.api.delete('/users/user%40company.com')
         self.api.get('/users/user%40company.com', status=404)
+
+
+class TestSingleUserLoggedIn(RootLoggedInTest):
+    def setUp(self):
+        super(TestSingleUserLoggedIn, self).setUp()
+        self.api.put('/users/user%40company.com')
+        self.api.post('/logout')
+        self.oauth2_login('user@company.com')
+
+    def test_admin_only_views(self):
+        self.api.put_json(
+            '/users/user%40company.com', {'groups': ['admin']}, status=403)
+        self.api.get('/users/user%40company.com', status=403)
+
+    def test_write_only_views(self):
+        self.api.post_json(
+            '/series', {
+                'name': 'Berserk',
+                'description': 'My Description',
+                'genres': ['action', 'meme'],
+                'dbpedia_uri': None,
+                'author': None,
+                'magazine': None,
+                'number_of_volumes': None,
+            }, status=403)
+        with tmp_cbt(['page{:x}.jpg'.format(x) for x in range(15)]) as f:
+            self.api.post(
+                '/series/missing/volumes',
+                upload_files=[('input', 'volume-007.cbt', f.read())],
+                content_type='multipart/form-data',
+                status=403
+            )
