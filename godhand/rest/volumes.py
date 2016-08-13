@@ -2,7 +2,6 @@ from pyramid.httpexceptions import HTTPNotFound
 import colander as co
 import couchdb.http
 
-from ..models import Volume
 from .utils import GodhandService
 
 
@@ -19,22 +18,6 @@ volume = GodhandService(
     path='/volumes/{volume}',
     schema=VolumePathSchema,
 )
-
-
-@volumes.post(content_type=('multipart/form-data',))
-def upload_volume(request):
-    """ Create volume and return unique ids.
-    """
-    volume_ids = []
-    for key, value in request.POST.items():
-        volume = Volume.from_archieve(
-            books_path=request.registry['godhand:books_path'],
-            filename=value.filename,
-            fd=value.file,
-        )
-        res = volume.store(request.registry['godhand:db'])
-        volume_ids.append(res.id)
-    return {'volumes': volume_ids}
 
 
 @volume.get()
