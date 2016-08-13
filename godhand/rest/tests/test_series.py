@@ -3,30 +3,13 @@ import os
 
 from PIL import Image
 
-from .utils import ApiTest
 from .utils import CbtFile
 from .utils import CbzFile
+from .utils import RootLoggedInTest
 from .utils import tmp_cbt
 
 
-class LoggedInTest(ApiTest):
-    def setUp(self):
-        super(LoggedInTest, self).setUp()
-        requests = self.mocks['godhand.rest.auth.requests']
-        client = self.mocks['godhand.rest.auth.client']
-        state = self.api.get('/oauth-init').json_body.pop('state')
-        requests.post.return_value.status_code = 200
-        requests.post.return_value.json.return_value = {
-            'id_token': 'myidtoken',
-        }
-        client.verify_id_token.return_value = {
-            'email_verified': True, 'email': self.root_email,
-        }
-        self.api.get(
-            '/oauth-callback', params={'state': state, 'code': 'mycode'})
-
-
-class TestEmpty(LoggedInTest):
+class TestEmpty(RootLoggedInTest):
     def test_get_missing(self):
         self.api.get('/series/missing', status=404)
 
@@ -78,7 +61,7 @@ class TestEmpty(LoggedInTest):
         self.assertEquals(expected, response)
 
 
-class SingleSeriesTest(LoggedInTest):
+class SingleSeriesTest(RootLoggedInTest):
     def setUp(self):
         super(SingleSeriesTest, self).setUp()
         response = self.api.post_json(

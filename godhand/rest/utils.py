@@ -22,7 +22,7 @@ def groupfinder(userid, request):
 def default_acl(request):
     return [
         (Allow, 'group:user', ('view',)),
-        (Allow, 'group:admin', ('write',)),
+        (Allow, 'group:admin', ('write', 'view', 'admin')),
         (Allow, Everyone, ('authenticate',)),
         (Deny, Everyone, ('view', 'write')),
     ]

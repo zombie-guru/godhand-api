@@ -48,11 +48,6 @@ class ApiTest(unittest.TestCase):
         ))
         self.db = couchdb.client.Server(self.couchdb_url)['godhand']
         self.addCleanup(self._cleanDb)
-        self.addCleanup(mock.patch.stopall)
-        self.mocks = {key: mock.patch(key).start() for key in (
-            'godhand.rest.auth.client',
-            'godhand.rest.auth.requests',
-        )}
 
     def use_fixture(self, fix):
         self.addCleanup(fix.cleanUp)
@@ -66,6 +61,55 @@ class ApiTest(unittest.TestCase):
                 client.delete(dbname)
             except couchdb.http.ResourceNotFound:
                 pass
+
+    def oauth2_login(self, email):
+        state = self.api.get('/oauth-init').json_body.pop('state')
+        with mock.patch('godhand.rest.auth.client') as client:
+            with mock.patch('godhand.rest.auth.requests') as requests:
+                expected = {
+                    'client_id': self.client_id,
+                    'application_name': self.client_appname,
+                    'scope': 'openid email',
+                    'redirect_uri': 'http://localhost/oauth-callback',
+                    'login_hint': '',
+                }
+                response = self.api.get('/oauth-init').json_body
+                state = response.pop('state')
+                assert state
+                assert expected == response
+
+                requests.post.return_value.status_code = 200
+                requests.post.return_value.json.return_value = {
+                    'id_token': 'myidtoken',
+                }
+                client.verify_id_token.return_value = {
+                    'email_verified': True, 'email': email,
+                }
+
+                expected = {'email': email}
+                response = self.api.get(
+                    '/oauth-callback',
+                    params={'state': state, 'code': 'mycode'},
+                ).json_body
+                assert expected == response
+
+                requests.post.assert_called_once_with(
+                    'https://www.googleapis.com/oauth2/v4/token',
+                    data={
+                        'code': 'mycode',
+                        'state': state,
+                        'client_id': self.client_id,
+                        'client_secret': self.client_secret,
+                        'redirect_uri': 'http://localhost/oauth-callback',
+                        'grant_type': 'authorization_code',
+                    },
+                )
+
+
+class RootLoggedInTest(ApiTest):
+    def setUp(self):
+        super(RootLoggedInTest, self).setUp()
+        self.oauth2_login(self.root_email)
 
 
 @contextlib.contextmanager
