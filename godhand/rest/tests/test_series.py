@@ -77,7 +77,7 @@ class TestEmpty(ApiTest):
         self.assertEquals(expected, response)
 
         # test views
-        self.assertEquals(Series.by_meta(self.db).total_rows, 5)
+        self.assertEquals(Series.by_meta(self.db).total_rows, 3)
         self.assertEquals(len(Series.by_meta(
             self.db, startkey=['action'], endkey=['action'], ).rows), 1)
         self.assertEquals(len(Series.by_meta(

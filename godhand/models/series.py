@@ -24,11 +24,27 @@ class Series(Document):
     function(doc) {
         if ((doc['@class'] === 'Series') && (doc.volumes.length > 0)) {
             emit([doc.name], {'field': 'Series', 'value': doc.name});
-            emit([doc.author], {'field': 'Author', 'value': doc.author});
-            emit([doc.magazine], {'field': 'Magazine', 'value': doc.magazine});
             doc.genres.map(function(genre) {
                 emit([genre], {'field': 'Genre', 'value': genre});
             });
+        }
+    }
+    ''')
+
+    by_genre = ViewField('by_genre', '''
+    function(doc) {
+        if ((doc['@class'] === 'Genre') && (doc.volumes.length > 0)) {
+            doc.genres.map(function(genre) {
+                emit([genre], doc);
+            });
+        }
+    }
+    ''')
+
+    by_series = ViewField('by_series', '''
+    function(doc) {
+        if ((doc['@class'] === 'Series') && (doc.volumes.length > 0)) {
+            emit([doc.name], doc);
         }
     }
     ''')
