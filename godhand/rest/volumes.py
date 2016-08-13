@@ -2,42 +2,27 @@ from pyramid.httpexceptions import HTTPNotFound
 import colander as co
 import couchdb.http
 
-from ..models import Volume
-from .utils import AuthenticatedService
+from .utils import GodhandService
 
 
 class VolumePathSchema(co.MappingSchema):
     volume = co.SchemaNode(co.String(), location='path')
 
 
-volumes = AuthenticatedService(
+volumes = GodhandService(
     name='volumes',
     path='/volumes',
 )
-volume = AuthenticatedService(
+volume = GodhandService(
     name='volume',
     path='/volumes/{volume}',
     schema=VolumePathSchema,
 )
 
 
-@volumes.post(content_type=('multipart/form-data',))
-def upload_volume(request):
-    """ Create volume and return unique ids.
-    """
-    volume_ids = []
-    for key, value in request.POST.items():
-        volume = Volume.from_archieve(
-            books_path=request.registry['godhand:books_path'],
-            filename=value.filename,
-            fd=value.file,
-        )
-        res = volume.store(request.registry['godhand:db'])
-        volume_ids.append(res.id)
-    return {'volumes': volume_ids}
-
-
-@volume.get()
+@volume.get(
+    permission='view',
+)
 def get_volume(request):
     """ Get a volume by ID.
 
@@ -69,7 +54,10 @@ class PutVolumeSchema(VolumePathSchema):
         co.Integer(), validator=co.Range(min=0), missing=None)
 
 
-@volume.put(schema=PutVolumeSchema)
+@volume.put(
+    schema=PutVolumeSchema,
+    permission='view',
+)
 def update_volume_meta(request):
     """ Update volume metadata.
     """

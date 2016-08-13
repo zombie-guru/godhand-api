@@ -11,5 +11,5 @@ dependencies:
     - eggs
 test:
   override:
-    - docker login -e "$DOCKER_EMAIL" -u "$DOCKER_USERNAME" -p "$DOCKER_PASSWORD" docker.qsensei.com
     - bin/nosetests --with-xunit --xunit-file $CIRCLE_TEST_REPORTS/nosetests.xml godhand
+    - bin/flake8

@@ -9,7 +9,9 @@ import couchdb.client
 import couchdb.http
 
 from ..config import GodhandConfiguration
+from ..models.auth import User
 from ..utils import wait_for_couchdb
+from .utils import groupfinder
 
 
 def main(global_config, **settings):
@@ -21,13 +23,23 @@ def main(global_config, **settings):
         google_client_secret=settings.get('google_client_secret'),
         google_client_appname=settings.get('google_client_appname'),
         auth_secret=settings.get('auth_secret'),
+        root_email=settings.get('root_email'),
     )
     books_path = os.path.abspath(cfg.books_path)
     config = Configurator(settings=settings)
+    setup_db(config, cfg.couchdb_url, cfg.root_email)
+    setup_acl(config, cfg.auth_secret)
     config.include('cornice')
     config.scan('.', ignore=[re.compile('^.*tests$').match])
-    wait_for_couchdb(cfg.couchdb_url)
-    client = couchdb.client.Server(cfg.couchdb_url)
+    config.registry['godhand:books_path'] = books_path
+    config.registry['godhand:cfg'] = cfg
+    config.add_static_view('static', books_path)
+    return config.make_wsgi_app()
+
+
+def setup_db(config, couchdb_url, root_email):
+    wait_for_couchdb(couchdb_url)
+    client = couchdb.client.Server(couchdb_url)
     try:
         db = client.create('godhand')
     except couchdb.http.PreconditionFailed:
@@ -36,20 +48,16 @@ def main(global_config, **settings):
         authdb = client.create('auth')
     except couchdb.http.PreconditionFailed:
         authdb = client['auth']
-    config.registry['godhand:books_path'] = books_path
     config.registry['godhand:db'] = db
     config.registry['godhand:authdb'] = authdb
-    config.registry['godhand:cfg'] = cfg
-    if not cfg.disable_auth:
-        setup_acl(config, cfg.auth_secret)
-    config.add_static_view('static', books_path)
-    return config.make_wsgi_app()
+    root = User(email=root_email, groups=['admin', 'user'], id='user:root')
+    root.store(authdb)
+    User.by_email.sync(authdb)
 
 
 def setup_acl(config, secret):
-    authz_policy = ACLAuthorizationPolicy()
-    config.set_authorization_policy(authz_policy)
-    authn_policy = AuthTktAuthenticationPolicy(secret, hashalg='sha512')
-    config.set_authentication_policy(authn_policy)
-    session_factory = SignedCookieSessionFactory(secret)
-    config.set_session_factory(session_factory)
+    config.set_authorization_policy(ACLAuthorizationPolicy())
+    config.set_authentication_policy(AuthTktAuthenticationPolicy(
+        secret, callback=groupfinder, hashalg='sha512'))
+    config.set_session_factory(SignedCookieSessionFactory(secret))
+    config.set_default_permission('edit')

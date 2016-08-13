@@ -1,9 +1,6 @@
 from PIL import Image
-from subprocess import check_call
 from tempfile import NamedTemporaryFile
-from tempfile import SpooledTemporaryFile
 from tempfile import TemporaryFile
-from urllib.parse import urlparse
 import contextlib
 import logging
 import os
@@ -11,10 +8,13 @@ import tarfile
 import unittest
 import zipfile
 
-from fixtures import Fixture
 from fixtures import TempDir
 from webtest import TestApp
 import couchdb.client
+import couchdb.http
+import mock
+
+from godhand.tests.utils import get_docker_ip
 
 
 HERE = os.path.dirname(__file__)
@@ -23,81 +23,102 @@ BUILDOUT_BIN_DIRECTORY = os.environ['BUILDOUT_BIN_DIRECTORY']
 LOG = logging.getLogger('tests')
 
 
-class AppTestFixture(Fixture):
-    def _setUp(self):
-        self.addCleanup(self.cleanUp)
-        self.compose('up', '-d')
-
-    @property
-    def compose_file(self):
-        return os.path.join(HERE, 'docker-compose.yml')
-
-    def get_ip(self):
-        try:
-            url = os.environ['DOCKER_HOST']
-        except KeyError:
-            return '127.0.0.1'
-        else:
-            return urlparse(url).hostname
-
-    def cleanUp(self):
-        self.compose('stop', '--timeout', '0')
-        self.compose('rm', '-fv', '--all')
-
-    def compose(self, *args):
-        with SpooledTemporaryFile() as f:
-            check_call((
-                os.path.join(BUILDOUT_BIN_DIRECTORY, 'docker-compose'),
-                '-f', self.compose_file,
-                '--project', 'testing',
-                ) + args, cwd=BUILDOUT_DIR, stderr=f, stdout=f)
-            f.flush()
-            f.seek(0)
-            LOG.debug(f.read())
-
-
 class ApiTest(unittest.TestCase):
     maxDiff = 5000
+    root_email = 'root@domain.com'
+    client_appname = 'my-client-appname'
+    client_id = 'my-client-id'
+    client_secret = 'my-client-secret'
+    couchdb_url = 'http://couchdb:mypassword@{}:8001'.format(get_docker_ip())
 
     def setUp(self):
         from godhand.rest import main
         base_path = self.use_fixture(TempDir()).path
         self.books_path = books_path = os.path.join(base_path, 'books')
         os.makedirs(books_path)
-        self.app_test_fix = self.use_fixture(AppTestFixture())
-        self.api = TestApp(main({}, books_path=books_path, **self.envvars))
-        self.db = couchdb.client.Server(self.envvars['couchdb_url'])['godhand']
+        self.api = TestApp(main(
+            {},
+            books_path=books_path,
+            couchdb_url=self.couchdb_url,
+            google_client_appname=self.client_appname,
+            google_client_id=self.client_id,
+            google_client_secret=self.client_secret,
+            auth_secret='my-auth-secret',
+            root_email=self.root_email,
+        ))
+        self.db = couchdb.client.Server(self.couchdb_url)['godhand']
+        self.addCleanup(self._cleanDb)
 
     def use_fixture(self, fix):
         self.addCleanup(fix.cleanUp)
         fix.setUp()
         return fix
 
-    @property
-    def envvars(self):
-        return {
-            'couchdb_url': 'http://couchdb:mypassword@{}:8001'.format(
-                self.app_test_fix.get_ip()),
-            'disable_auth': True,
-        }
+    def _cleanDb(self):
+        client = couchdb.client.Server(self.couchdb_url)
+        for dbname in ('godhand', 'auth', 'derp'):
+            try:
+                client.delete(dbname)
+            except couchdb.http.ResourceNotFound:
+                pass
+
+    def oauth2_login(self, email):
+        state = self.api.get('/oauth-init').json_body.pop('state')
+        with mock.patch('godhand.rest.auth.client') as client:
+            with mock.patch('godhand.rest.auth.requests') as requests:
+                expected = {
+                    'client_id': self.client_id,
+                    'application_name': self.client_appname,
+                    'scope': 'openid email',
+                    'redirect_uri': 'http://localhost/oauth-callback',
+                    'login_hint': '',
+                }
+                response = self.api.get('/oauth-init').json_body
+                state = response.pop('state')
+                assert state
+                assert expected == response
+
+                requests.post.return_value.status_code = 200
+                requests.post.return_value.json.return_value = {
+                    'id_token': 'myidtoken',
+                }
+                client.verify_id_token.return_value = {
+                    'email_verified': True, 'email': email,
+                }
+
+                expected = {'email': email}
+                response = self.api.get(
+                    '/oauth-callback',
+                    params={'state': state, 'code': 'mycode'},
+                ).json_body
+                assert expected == response
+
+                requests.post.assert_called_once_with(
+                    'https://www.googleapis.com/oauth2/v4/token',
+                    data={
+                        'code': 'mycode',
+                        'state': state,
+                        'client_id': self.client_id,
+                        'client_secret': self.client_secret,
+                        'redirect_uri': 'http://localhost/oauth-callback',
+                        'grant_type': 'authorization_code',
+                    },
+                )
 
 
-class ApiTestWithAuth(ApiTest):
-    client_appname = 'my-client-appname'
-    client_id = 'my-client-id'
-    client_secret = 'my-client-secret'
+class RootLoggedInTest(ApiTest):
+    def setUp(self):
+        super(RootLoggedInTest, self).setUp()
+        self.oauth2_login(self.root_email)
 
-    @property
-    def envvars(self):
-        return {
-            'couchdb_url': 'http://couchdb:mypassword@{}:8001'.format(
-                self.app_test_fix.get_ip()),
-            'disable_auth': False,
-            'google_client_appname': self.client_appname,
-            'google_client_id': self.client_id,
-            'google_client_secret': self.client_secret,
-            'auth_secret': 'my-auth-secret',
-        }
+
+class WriteUserLoggedInTest(ApiTest):
+    def setUp(self):
+        super(WriteUserLoggedInTest, self).setUp()
+        self.oauth2_login(self.root_email)
+        self.api.put_json('/users/write%40company.com', {'groups': ['admin']})
+        self.api.post('/logout')
+        self.oauth2_login('write@company.com')
 
 
 @contextlib.contextmanager

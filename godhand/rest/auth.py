@@ -1,29 +1,94 @@
 import hashlib
 import os
 
-from cornice import Service
 from oauth2client import client
 from pyramid.httpexceptions import HTTPUnauthorized
+from pyramid.httpexceptions import HTTPNotFound
+from pyramid.security import forget
 from pyramid.security import remember
 import colander as co
 import requests
 
-from godhand.models.auth import AntiForgeryToken
+from ..models.auth import AntiForgeryToken
+from ..models.auth import User
+from .utils import GodhandService
 
-user = Service(name='user', path='/user')
-oauth_init = Service(name='oauth-init', path='/oauth-init')
-oauth_callback = Service(name='oauth-callback', path='/oauth-callback')
+user = GodhandService(
+    name='user',
+    path='/users/{userid}',
+    permission='admin',
+)
+logout = GodhandService(
+    name='logout',
+    path='/logout',
+    permission='authenticate',
+)
+oauth_init = GodhandService(
+    name='oauth-init',
+    path='/oauth-init',
+    permission='authenticate',
+)
+oauth_callback = GodhandService(
+    name='oauth-callback',
+    path='/oauth-callback',
+    permission='authenticate',
+)
+
+
+class UserPathSchema(co.MappingSchema):
+    userid = co.SchemaNode(co.String(), location='path', validator=co.Email())
+
+
+class UpdateUserSchema(UserPathSchema):
+    @co.instantiate(missing=('user',))
+    class groups(co.SequenceSchema):
+        group = co.SchemaNode(co.String())
+
+
+@user.get(schema=UserPathSchema)
+def get_user(request):
+    authdb = request.registry['godhand:authdb']
+    userid = request.validated['userid']
+    user = User.load(authdb, 'user:{}'.format(userid))
+    if not user:
+        raise HTTPNotFound()
+    return dict(user.items())
+
+
+@user.put(schema=UpdateUserSchema)
+def update_user(request):
+    authdb = request.registry['godhand:authdb']
+    userid = request.validated['userid']
+    groups = request.validated['groups']
+    user = User.load(authdb, 'user:{}'.format(userid))
+    if user is None:
+        user = User(
+            email=userid,
+            id='user:{}'.format(userid),
+        )
+    user.groups = groups
+    user.store(authdb)
+    User.by_email.sync(authdb)
+
+
+@user.delete(schema=UserPathSchema)
+def delete_user(request):
+    authdb = request.registry['godhand:authdb']
+    userid = request.validated['userid']
+    user = User.load(authdb, 'user:{}'.format(userid))
+    if user:
+        authdb.delete(user)
+
+
+@logout.post()
+def user_logout(request):
+    response = request.response
+    response.headers.extend(forget(request))
+    return response
 
 
 def create_anti_forgery_token():
     return 'token:' + hashlib.sha256(os.urandom(1024)).hexdigest()
-
-
-@user.get()
-def get_user(request):
-    """ Get logged in user information.
-    """
-    return {'email': request.unauthenticated_userid}
 
 
 @oauth_init.get()
