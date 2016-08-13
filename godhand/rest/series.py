@@ -65,6 +65,7 @@ def create_series(request):
     """
     doc = Series(**request.validated)
     doc.store(request.registry['godhand:db'])
+    Series.by_meta.sync(request.registry['godhand:db'])
     return {
         'series': [doc.id],
     }
@@ -100,6 +101,7 @@ def upload_volume(request):
         doc.add_volume(volume)
         volume_ids.append(volume.id)
     doc.store(db)
+    Series.by_meta.sync(request.registry['godhand:db'])
     return {'volumes': volume_ids}
 
 

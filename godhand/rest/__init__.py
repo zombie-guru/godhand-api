@@ -6,6 +6,7 @@ from pyramid.authorization import ACLAuthorizationPolicy
 from pyramid.config import Configurator
 from pyramid.session import SignedCookieSessionFactory
 import couchdb.client
+import couchdb.http
 
 from ..config import GodhandConfiguration
 from ..utils import wait_for_couchdb

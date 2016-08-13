@@ -4,6 +4,7 @@ from .utils import tmp_cbt
 
 class TestEmpty(ApiTest):
     def test_create_series(self):
+        from godhand.models import Series
         # test 404
         self.api.get('/series/missing', status=404)
         # create a series
@@ -74,6 +75,13 @@ class TestEmpty(ApiTest):
         response = self.api.get('/series/{}'.format(series_id)).json_body
         assert response.pop('_rev')
         self.assertEquals(expected, response)
+
+        # test views
+        self.assertEquals(Series.by_meta(self.db).total_rows, 5)
+        self.assertEquals(len(Series.by_meta(
+            self.db, startkey=['action'], endkey=['action'], ).rows), 1)
+        self.assertEquals(len(Series.by_meta(
+            self.db, startkey=['act'], endkey=['act\ufff0']).rows), 1)
 
         # store and get series progress
         expected = {'volume_number': 0, 'page_number': 0}

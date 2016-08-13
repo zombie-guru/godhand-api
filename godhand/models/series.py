@@ -4,6 +4,7 @@ from couchdb.mapping import IntegerField
 from couchdb.mapping import ListField
 from couchdb.mapping import Mapping
 from couchdb.mapping import TextField
+from couchdb.mapping import ViewField
 
 
 class Series(Document):
@@ -18,6 +19,19 @@ class Series(Document):
         id=TextField(),
         volume_number=IntegerField(),
     )))
+
+    by_meta = ViewField('by_meta', '''
+    function(doc) {
+        if ((doc['@class'] === 'Series') && (doc.volumes.length > 0)) {
+            emit([doc.name], {'field': 'Series', 'value': doc.name});
+            emit([doc.author], {'field': 'Author', 'value': doc.author});
+            emit([doc.magazine], {'field': 'Magazine', 'value': doc.magazine});
+            doc.genres.map(function(genre) {
+                emit([genre], {'field': 'Genre', 'value': genre});
+            });
+        }
+    }
+    ''')
 
     def add_volume(self, volume):
         self.volumes.append(
