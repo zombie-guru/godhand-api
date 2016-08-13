@@ -10,9 +10,7 @@ setup(
     author_email='geoffrey@zombie.guru',
     url='',
     packages=find_packages(),
-    package_data={
-        'godhand': ['fusepkg/*.json', 'fusepkg/*.py'],
-    },
+    package_data={},
     include_package_data=True,
     zip_safe=False,
     install_requires=[

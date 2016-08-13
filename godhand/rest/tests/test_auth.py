@@ -1,9 +1,9 @@
 import mock
 
-from .utils import ApiTestWithAuth
+from .utils import ApiTest
 
 
-class TestLoggedOut(ApiTestWithAuth):
+class TestLoggedOut(ApiTest):
     def setUp(self):
         super(TestLoggedOut, self).setUp()
         self.mocks = {

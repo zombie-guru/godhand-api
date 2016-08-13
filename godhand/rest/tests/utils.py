@@ -1,9 +1,6 @@
 from PIL import Image
-from subprocess import check_call
 from tempfile import NamedTemporaryFile
-from tempfile import SpooledTemporaryFile
 from tempfile import TemporaryFile
-from urllib.parse import urlparse
 import contextlib
 import logging
 import os
@@ -11,10 +8,12 @@ import tarfile
 import unittest
 import zipfile
 
-from fixtures import Fixture
 from fixtures import TempDir
 from webtest import TestApp
 import couchdb.client
+import couchdb.http
+
+from godhand.tests.utils import get_docker_ip
 
 
 HERE = os.path.dirname(__file__)
@@ -23,80 +22,42 @@ BUILDOUT_BIN_DIRECTORY = os.environ['BUILDOUT_BIN_DIRECTORY']
 LOG = logging.getLogger('tests')
 
 
-class AppTestFixture(Fixture):
-    def _setUp(self):
-        self.addCleanup(self.cleanUp)
-        self.compose('up', '-d')
-
-    @property
-    def compose_file(self):
-        return os.path.join(HERE, 'docker-compose.yml')
-
-    def get_ip(self):
-        try:
-            url = os.environ['DOCKER_HOST']
-        except KeyError:
-            return '127.0.0.1'
-        else:
-            return urlparse(url).hostname
-
-    def cleanUp(self):
-        self.compose('stop', '--timeout', '0')
-        self.compose('rm', '-fv', '--all')
-
-    def compose(self, *args):
-        with SpooledTemporaryFile() as f:
-            check_call((
-                os.path.join(BUILDOUT_BIN_DIRECTORY, 'docker-compose'),
-                '-f', self.compose_file,
-                '--project', 'testing',
-                ) + args, cwd=BUILDOUT_DIR, stderr=f, stdout=f)
-            f.flush()
-            f.seek(0)
-            LOG.debug(f.read())
-
-
 class ApiTest(unittest.TestCase):
     maxDiff = 5000
+    client_appname = 'my-client-appname'
+    client_id = 'my-client-id'
+    client_secret = 'my-client-secret'
+    couchdb_url = 'http://couchdb:mypassword@{}:8001'.format(get_docker_ip())
 
     def setUp(self):
         from godhand.rest import main
         base_path = self.use_fixture(TempDir()).path
         self.books_path = books_path = os.path.join(base_path, 'books')
         os.makedirs(books_path)
-        self.app_test_fix = self.use_fixture(AppTestFixture())
-        self.api = TestApp(main({}, books_path=books_path, **self.envvars))
-        self.db = couchdb.client.Server(self.envvars['couchdb_url'])['godhand']
+        self.api = TestApp(main(
+            {},
+            books_path=books_path,
+            couchdb_url=self.couchdb_url,
+            google_client_appname=self.client_appname,
+            google_client_id=self.client_id,
+            google_client_secret=self.client_secret,
+            auth_secret='my-auth-secret',
+        ))
+        self.db = couchdb.client.Server(self.couchdb_url)['godhand']
+        self.addCleanup(self._cleanDb)
 
     def use_fixture(self, fix):
         self.addCleanup(fix.cleanUp)
         fix.setUp()
         return fix
 
-    @property
-    def envvars(self):
-        return {
-            'couchdb_url': 'http://couchdb:mypassword@{}:8001'.format(
-                self.app_test_fix.get_ip()),
-            'auth_secret': 'my-auth-secret',
-        }
-
-
-class ApiTestWithAuth(ApiTest):
-    client_appname = 'my-client-appname'
-    client_id = 'my-client-id'
-    client_secret = 'my-client-secret'
-
-    @property
-    def envvars(self):
-        return {
-            'couchdb_url': 'http://couchdb:mypassword@{}:8001'.format(
-                self.app_test_fix.get_ip()),
-            'google_client_appname': self.client_appname,
-            'google_client_id': self.client_id,
-            'google_client_secret': self.client_secret,
-            'auth_secret': 'my-auth-secret',
-        }
+    def _cleanDb(self):
+        client = couchdb.client.Server(self.couchdb_url)
+        for dbname in ('godhand', 'auth', 'derp'):
+            try:
+                client.delete(dbname)
+            except couchdb.http.ResourceNotFound:
+                pass
 
 
 @contextlib.contextmanager
