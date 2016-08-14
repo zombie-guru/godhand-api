@@ -20,6 +20,21 @@ class Series(Document):
         volume_number=IntegerField(),
     )))
 
+    search = ViewField('search', '''
+    function(doc) {
+        if ((doc['@class'] === 'Series') && (doc.volumes.length > 0)) {
+            emit([doc.name, 'name'], 1);
+            doc.genres.map(function(genre) {
+                emit([genre, 'genres'], 1);
+            })
+        }
+    }
+    ''', reduce_fun='_sum', wrapper=lambda x: {
+        'attribute': x['key'][1],
+        'value': x['key'][0],
+        'matches': x['value'],
+    })
+
     by_name = ViewField('by_name', '''
     function(doc) {
         if ((doc['@class'] === 'Series') && (doc.volumes.length > 0)) {

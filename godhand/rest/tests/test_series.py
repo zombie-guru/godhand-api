@@ -189,3 +189,19 @@ class TestSingleVolumeInSeries(SingleVolumeInSeriesTest):
         for x in response['items']:
             x.pop('_rev')
         self.assertEquals(expected, response)
+
+    def test_search(self):
+        expected = {'items': [
+            {'attribute': 'genres', 'value': 'action', 'matches': 1},
+            {'attribute': 'name', 'value': 'Berserk', 'matches': 1},
+            {'attribute': 'genres', 'value': 'meme', 'matches': 1},
+        ]}
+        response = self.api.get('/search').json_body
+        self.assertEquals(expected, response)
+
+    def test_search_query(self):
+        expected = {'items': [
+            {'attribute': 'genres', 'value': 'meme', 'matches': 1},
+        ]}
+        response = self.api.get('/search', params={'query': 'me'}).json_body
+        self.assertEquals(expected, response)

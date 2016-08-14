@@ -9,6 +9,8 @@ from .utils import GodhandService
 from .utils import paginate_view
 
 
+search = GodhandService(
+    name='search', path='/search')
 series_collection = GodhandService(
     name='series_collection', path='/series')
 series = GodhandService(name='series', path='/series/{series}')
@@ -16,6 +18,20 @@ series_volumes = GodhandService(
     name='series_volumes', path='/series/{series}/volumes')
 series_reader_progress = GodhandService(
     name='series_reader_progress', path='/series/{series}/reader-progress')
+
+
+class SearchSeriesSchema(co.MappingSchema):
+    query = co.SchemaNode(co.String(), location='querystring', missing=None)
+
+
+@search.get(permission='view', schema=SearchSeriesSchema)
+def search_series(request):
+    v = request.validated
+    kws = {'group': True}
+    if v['query']:
+        kws['startkey'] = [v['query']]
+        kws['endkey'] = [v['query'] + u'\ufff0']
+    return paginate_view(request, Series.search, **kws)
 
 
 def get_doc_from_request(request):
@@ -75,6 +91,7 @@ def create_series(request):
     doc = Series(**request.validated)
     doc.store(request.registry['godhand:db'])
     Series.by_name.sync(request.registry['godhand:db'])
+    Series.search.sync(request.registry['godhand:db'])
     return {
         'series': [doc.id],
     }
@@ -114,6 +131,7 @@ def upload_volume(request):
         volume_ids.append(volume.id)
     doc.store(db)
     Series.by_name.sync(request.registry['godhand:db'])
+    Series.search.sync(request.registry['godhand:db'])
     return {'volumes': volume_ids}
 
 
