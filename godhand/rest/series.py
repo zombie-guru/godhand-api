@@ -22,15 +22,24 @@ series_reader_progress = GodhandService(
 
 class SearchSeriesSchema(co.MappingSchema):
     query = co.SchemaNode(co.String(), location='querystring', missing=None)
+    include_empty = co.SchemaNode(
+        co.Boolean(), location='querystring', missing=False)
 
 
 @search.get(permission='view', schema=SearchSeriesSchema)
 def search_series(request):
     v = request.validated
-    kws = {'group': True}
+    kws = {
+        'group': True,
+        'startkey': [None if v['include_empty'] else True],
+        'endkey': [None if v['include_empty'] else True],
+    }
     if v['query']:
-        kws['startkey'] = [v['query']]
-        kws['endkey'] = [v['query'] + u'\ufff0']
+        kws['startkey'].append(v['query'])
+        kws['endkey'].append(v['query'] + u'\ufff0')
+    else:
+        kws['startkey'].append(None)
+        kws['endkey'].append({})
     return paginate_view(request, Series.search, **kws)
 
 

@@ -22,16 +22,22 @@ class Series(Document):
 
     search = ViewField('search', '''
     function(doc) {
-        if ((doc['@class'] === 'Series') && (doc.volumes.length > 0)) {
-            emit([doc.name, 'name'], 1);
+        if (doc['@class'] === 'Series') {
+            emit([null, doc.name, 'name'], 1);
             doc.genres.map(function(genre) {
-                emit([genre, 'genres'], 1);
-            })
+                emit([null, genre, 'genres'], 1);
+            });
+            if (doc.volumes.length > 0) {
+                emit([true, doc.name, 'name'], 1);
+                doc.genres.map(function(genre) {
+                    emit([true, genre, 'genres'], 1);
+                });
+            }
         }
     }
     ''', reduce_fun='_sum', wrapper=lambda x: {
-        'attribute': x['key'][1],
-        'value': x['key'][0],
+        'attribute': x['key'][2],
+        'value': x['key'][1],
         'matches': x['value'],
     })
 
