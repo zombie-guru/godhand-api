@@ -20,28 +20,7 @@ class Series(Document):
         volume_number=IntegerField(),
     )))
 
-    by_meta = ViewField('by_meta', '''
-    function(doc) {
-        if ((doc['@class'] === 'Series') && (doc.volumes.length > 0)) {
-            emit([doc.name], {'field': 'Series', 'value': doc.name});
-            doc.genres.map(function(genre) {
-                emit([genre], {'field': 'Genre', 'value': genre});
-            });
-        }
-    }
-    ''')
-
-    by_genre = ViewField('by_genre', '''
-    function(doc) {
-        if ((doc['@class'] === 'Genre') && (doc.volumes.length > 0)) {
-            doc.genres.map(function(genre) {
-                emit([genre], doc);
-            });
-        }
-    }
-    ''')
-
-    by_series = ViewField('by_series', '''
+    by_name = ViewField('by_name', '''
     function(doc) {
         if ((doc['@class'] === 'Series') && (doc.volumes.length > 0)) {
             emit([doc.name], doc);

@@ -155,10 +155,9 @@ class SingleVolumeInSeriesTest(SingleSeriesTest):
         self.assertEquals(len(response['volumes']), 1)
         self.volume_id = response['volumes'][0]
 
-
-class TestSingleVolumeInSeries(SingleVolumeInSeriesTest):
-    def test_get_series_by_id(self):
-        expected = {
+    @property
+    def expected_series(self):
+        return {
             '@class': 'Series',
             '_id': self.series_id,
             'name': 'Berserk',
@@ -174,6 +173,19 @@ class TestSingleVolumeInSeries(SingleVolumeInSeriesTest):
             'magazine': None,
             'number_of_volumes': None,
         }
+
+
+class TestSingleVolumeInSeries(SingleVolumeInSeriesTest):
+    def test_get_series_by_id(self):
         response = self.api.get('/series/{}'.format(self.series_id)).json_body
         assert response.pop('_rev')
+        self.assertEquals(self.expected_series, response)
+
+    def test_get_collection(self):
+        expected = {
+            'items': [self.expected_series],
+        }
+        response = self.api.get('/series').json_body
+        for x in response['items']:
+            x.pop('_rev')
         self.assertEquals(expected, response)

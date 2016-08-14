@@ -29,3 +29,10 @@ def default_acl(request):
 
 
 GodhandService = partial(Service, acl=default_acl, permission='view')
+
+
+def paginate_view(request, view):
+    db = request.registry['godhand:db']
+    return {
+        'items': [dict(x.items()) for x in iter(view(db, limit=50))],
+    }
