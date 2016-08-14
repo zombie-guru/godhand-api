@@ -1,3 +1,4 @@
+from pyramid.httpexceptions import HTTPBadRequest
 from pyramid.httpexceptions import HTTPNotFound
 import colander as co
 import couchdb.http
@@ -65,9 +66,21 @@ def get_doc_from_request(request):
     return doc
 
 
-@series_collection.get(permission='view')
+class GetSeriesCollectionSchema(co.MappingSchema):
+    genre = co.SchemaNode(co.String(), location='querystring', missing=None)
+    name = co.SchemaNode(co.String(), location='querystring', missing=None)
+    include_empty = co.SchemaNode(
+        co.Boolean(), location='querystring', missing=False)
+
+
+@series_collection.get(permission='view', schema=GetSeriesCollectionSchema)
 def get_series_collection(request):
-    return paginate_view(request, Series.by_name)
+    db = request.registry['godhand:db']
+    try:
+        view = Series.query(db, **request.validated)
+    except ValueError as e:
+        raise HTTPBadRequest(repr(e))
+    return {'items': [dict(x.items()) for x in iter(view)]}
 
 
 class PostSeriesCollectionSchema(co.MappingSchema):
@@ -108,7 +121,7 @@ def create_series(request):
     """
     doc = Series(**request.validated)
     doc.store(request.registry['godhand:db'])
-    Series.by_name.sync(request.registry['godhand:db'])
+    Series.by_attribute.sync(request.registry['godhand:db'])
     Series.search.sync(request.registry['godhand:db'])
     Series.search_by_attribute.sync(request.registry['godhand:db'])
     return {
@@ -149,7 +162,7 @@ def upload_volume(request):
         doc.add_volume(volume)
         volume_ids.append(volume.id)
     doc.store(db)
-    Series.by_name.sync(request.registry['godhand:db'])
+    Series.by_attribute.sync(request.registry['godhand:db'])
     Series.search.sync(request.registry['godhand:db'])
     Series.search_by_attribute.sync(request.registry['godhand:db'])
     return {'volumes': volume_ids}

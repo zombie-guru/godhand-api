@@ -62,13 +62,43 @@ class Series(Document):
         'matches': x['value'],
     })
 
-    by_name = ViewField('by_name', '''
+    by_attribute = ViewField('by_attribute', '''
     function(doc) {
-        if ((doc['@class'] === 'Series') && (doc.volumes.length > 0)) {
-            emit([doc.name], doc);
+        if (doc['@class'] === 'Series') {
+            emit([null, 'name:' + doc.name], doc);
+            emit([doc.volumes.length > 0, 'name:' + doc.name], doc);
+            doc.genres.map(function(genre) {
+                emit(
+                    [null, 'genre:' + genre, doc.name],
+                    doc
+                );
+                emit(
+                    [doc.volumes.length > 0, 'genre:' + genre, doc.name],
+                    doc
+                );
+            })
         }
     }
     ''')
+
+    @classmethod
+    def query(cls, db, genre=None, name=None, include_empty=False):
+        if genre is not None and name is not None:
+            raise ValueError('Only genre or name can be supplied')
+        kws = {
+            'startkey': [None if include_empty else True],
+            'endkey': [None if include_empty else True],
+        }
+        if genre:
+            kws['startkey'].extend(['genre:' + genre, None])
+            kws['endkey'].extend(['genre:' + genre, {}])
+        elif name:
+            kws['startkey'].append('name:' + name)
+            kws['endkey'].append('name:' + name)
+        else:
+            kws['startkey'].append('name:')
+            kws['endkey'].append(u'name:\ufff0')
+        return Series.by_attribute(db, **kws)
 
     def add_volume(self, volume):
         self.volumes.append(
