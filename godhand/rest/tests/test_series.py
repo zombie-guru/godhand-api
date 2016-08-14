@@ -78,8 +78,47 @@ class SingleSeriesTest(WriteUserLoggedInTest):
         self.assertEquals(len(response['series']), 1)
         self.series_id = response['series'][0]
 
+    @property
+    def expected_series(self):
+        return {
+            '@class': 'Series',
+            '_id': self.series_id,
+            'name': 'Berserk',
+            'description': 'My Description',
+            'genres': ['action', 'meme'],
+            'volumes': [],
+            'author': None,
+            'magazine': None,
+            'number_of_volumes': None,
+        }
+
 
 class TestSingleSeries(SingleSeriesTest):
+    def test_get_collection(self):
+        expected = {'items': []}
+        response = self.api.get('/series').json_body
+        for x in response['items']:
+            x.pop('_rev')
+        self.assertEquals(expected, response)
+
+    def test_get_collection_by_genre_all(self):
+        expected = {'items': [self.expected_series]}
+        response = self.api.get(
+            '/series', params={'genre': 'meme', 'include_empty': True},
+        ).json_body
+        for x in response['items']:
+            x.pop('_rev')
+        self.assertEquals(expected, response)
+
+    def test_get_collection_by_name_all(self):
+        expected = {'items': [self.expected_series]}
+        response = self.api.get(
+            '/series', params={'name': 'Berserk', 'include_empty': True},
+        ).json_body
+        for x in response['items']:
+            x.pop('_rev')
+        self.assertEquals(expected, response)
+
     def test_add_volume_to_series(self):
         for cls in (CbtFile, CbzFile):
             cbt = cls()
@@ -142,6 +181,66 @@ class TestSingleSeries(SingleSeriesTest):
             response.pop(key, None)
         self.assertEquals(expected, response)
 
+    def test_search(self):
+        expected = {'items': []}
+        response = self.api.get('/search').json_body
+        self.assertEquals(expected, response)
+
+    def test_search_all(self):
+        expected = {'items': [
+            {'attribute': 'genres', 'value': 'action', 'matches': 1},
+            {'attribute': 'name', 'value': 'Berserk', 'matches': 1},
+            {'attribute': 'genres', 'value': 'meme', 'matches': 1},
+        ]}
+        response = self.api.get(
+            '/search', params={'include_empty': True}).json_body
+        self.assertEquals(expected, response)
+
+    def test_search_query(self):
+        expected = {'items': []}
+        response = self.api.get('/search', params={'query': 'me'}).json_body
+        self.assertEquals(expected, response)
+
+    def test_search_query_all(self):
+        expected = {'items': [
+            {'attribute': 'genres', 'value': 'meme', 'matches': 1},
+        ]}
+        response = self.api.get(
+            '/search', params={'query': 'me', 'include_empty': True}).json_body
+        self.assertEquals(expected, response)
+
+    def test_search_by_name(self):
+        expected = {'items': []}
+        response = self.api.get(
+            '/search', params={'attribute': 'name'}).json_body
+        self.assertEquals(expected, response)
+
+    def test_search_by_name_all(self):
+        expected = {'items': [
+            {'attribute': 'name', 'value': 'Berserk', 'matches': 1},
+        ]}
+        response = self.api.get(
+            '/search',
+            params={'attribute': 'name', 'include_empty': True}).json_body
+        self.assertEquals(expected, response)
+
+    def test_search_by_genres(self):
+        expected = {'items': []}
+        response = self.api.get(
+            '/search', params={'attribute': 'genres'}).json_body
+        self.assertEquals(expected, response)
+
+    def test_search_by_genres_all(self):
+        expected = {'items': [
+            {'attribute': 'genres', 'value': 'action', 'matches': 1},
+            {'attribute': 'genres', 'value': 'meme', 'matches': 1},
+        ]}
+        response = self.api.get(
+            '/search',
+            params={'attribute': 'genres', 'include_empty': True},
+        ).json_body
+        self.assertEquals(expected, response)
+
 
 class SingleVolumeInSeriesTest(SingleSeriesTest):
     def setUp(self):
@@ -155,10 +254,9 @@ class SingleVolumeInSeriesTest(SingleSeriesTest):
         self.assertEquals(len(response['volumes']), 1)
         self.volume_id = response['volumes'][0]
 
-
-class TestSingleVolumeInSeries(SingleVolumeInSeriesTest):
-    def test_get_series_by_id(self):
-        expected = {
+    @property
+    def expected_series(self):
+        return {
             '@class': 'Series',
             '_id': self.series_id,
             'name': 'Berserk',
@@ -174,6 +272,133 @@ class TestSingleVolumeInSeries(SingleVolumeInSeriesTest):
             'magazine': None,
             'number_of_volumes': None,
         }
+
+
+class TestSingleVolumeInSeries(SingleVolumeInSeriesTest):
+    def test_get_series_by_id(self):
         response = self.api.get('/series/{}'.format(self.series_id)).json_body
         assert response.pop('_rev')
+        self.assertEquals(self.expected_series, response)
+
+    def test_get_collection(self):
+        expected = {'items': [self.expected_series]}
+        response = self.api.get('/series').json_body
+        for x in response['items']:
+            x.pop('_rev')
+        self.assertEquals(expected, response)
+
+    def test_get_collection_by_genre(self):
+        expected = {'items': [self.expected_series]}
+        response = self.api.get('/series', params={'genre': 'meme'}).json_body
+        for x in response['items']:
+            x.pop('_rev')
+        self.assertEquals(expected, response)
+
+    def test_get_collection_by_genre_negative(self):
+        expected = {'items': []}
+        response = self.api.get(
+            '/series', params={'genre': 'romance'}).json_body
+        for x in response['items']:
+            x.pop('_rev')
+        self.assertEquals(expected, response)
+
+    def test_get_collection_by_name(self):
+        expected = {'items': [self.expected_series]}
+        response = self.api.get(
+            '/series', params={'name': 'Berserk'}).json_body
+        for x in response['items']:
+            x.pop('_rev')
+        self.assertEquals(expected, response)
+
+    def test_get_collection_by_name_negative(self):
+        expected = {'items': []}
+        response = self.api.get('/series', params={'name': 'derp'}).json_body
+        self.assertEquals(expected, response)
+
+    def test_search(self):
+        expected = {'items': [
+            {'attribute': 'genres', 'value': 'action', 'matches': 1},
+            {'attribute': 'name', 'value': 'Berserk', 'matches': 1},
+            {'attribute': 'genres', 'value': 'meme', 'matches': 1},
+        ]}
+        response = self.api.get('/search').json_body
+        self.assertEquals(expected, response)
+
+    def test_search_all(self):
+        expected = {'items': [
+            {'attribute': 'genres', 'value': 'action', 'matches': 1},
+            {'attribute': 'name', 'value': 'Berserk', 'matches': 1},
+            {'attribute': 'genres', 'value': 'meme', 'matches': 1},
+        ]}
+        response = self.api.get(
+            '/search', params={'include_empty': True}).json_body
+        self.assertEquals(expected, response)
+
+    def test_search_by_name(self):
+        expected = {'items': [
+            {'attribute': 'name', 'value': 'Berserk', 'matches': 1},
+        ]}
+        response = self.api.get(
+            '/search', params={'attribute': 'name'}).json_body
+        self.assertEquals(expected, response)
+
+    def test_search_by_name_all(self):
+        expected = {'items': [
+            {'attribute': 'name', 'value': 'Berserk', 'matches': 1},
+        ]}
+        response = self.api.get(
+            '/search',
+            params={'attribute': 'name', 'include_empty': True}).json_body
+        self.assertEquals(expected, response)
+
+    def test_search_by_genres(self):
+        expected = {'items': [
+            {'attribute': 'genres', 'value': 'action', 'matches': 1},
+            {'attribute': 'genres', 'value': 'meme', 'matches': 1},
+        ]}
+        response = self.api.get(
+            '/search', params={'attribute': 'genres'}).json_body
+        self.assertEquals(expected, response)
+
+    def test_search_by_genres_all(self):
+        expected = {'items': [
+            {'attribute': 'genres', 'value': 'action', 'matches': 1},
+            {'attribute': 'genres', 'value': 'meme', 'matches': 1},
+        ]}
+        response = self.api.get(
+            '/search',
+            params={'attribute': 'genres', 'include_empty': True},
+        ).json_body
+        self.assertEquals(expected, response)
+
+    def test_search_query(self):
+        expected = {'items': [
+            {'attribute': 'genres', 'value': 'meme', 'matches': 1},
+        ]}
+        response = self.api.get('/search', params={'query': 'me'}).json_body
+        self.assertEquals(expected, response)
+
+    def test_search_query_all(self):
+        expected = {'items': [
+            {'attribute': 'genres', 'value': 'meme', 'matches': 1},
+        ]}
+        response = self.api.get(
+            '/search', params={'query': 'me', 'include_empty': True}).json_body
+        self.assertEquals(expected, response)
+
+    def test_search_query_by_name(self):
+        expected = {'items': [
+            {'attribute': 'name', 'value': 'Berserk', 'matches': 1},
+        ]}
+        response = self.api.get(
+            '/search', params={'query': 'be', 'attribute': 'name'}).json_body
+        self.assertEquals(expected, response)
+
+    def test_search_query_by_genres(self):
+        expected = {'items': [
+            {'attribute': 'genres', 'value': 'action', 'matches': 1},
+            {'attribute': 'genres', 'value': 'meme', 'matches': 1},
+        ]}
+        response = self.api.get(
+            '/search', params={'attribute': 'genres'}).json_body
         self.assertEquals(expected, response)

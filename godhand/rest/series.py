@@ -1,3 +1,4 @@
+from pyramid.httpexceptions import HTTPBadRequest
 from pyramid.httpexceptions import HTTPNotFound
 import colander as co
 import couchdb.http
@@ -8,6 +9,8 @@ from ..models import Volume
 from .utils import GodhandService
 
 
+search = GodhandService(
+    name='search', path='/search')
 series_collection = GodhandService(
     name='series_collection', path='/series')
 series = GodhandService(name='series', path='/series/{series}')
@@ -15,6 +18,22 @@ series_volumes = GodhandService(
     name='series_volumes', path='/series/{series}/volumes')
 series_reader_progress = GodhandService(
     name='series_reader_progress', path='/series/{series}/reader-progress')
+
+
+class SearchSeriesSchema(co.MappingSchema):
+    query = co.SchemaNode(co.String(), location='querystring', missing=None)
+    include_empty = co.SchemaNode(
+        co.Boolean(), location='querystring', missing=False)
+    attribute = co.SchemaNode(
+        co.String(), location='querystring', missing=False,
+        validator=co.OneOf(['genres', 'name']))
+
+
+@search.get(permission='view', schema=SearchSeriesSchema)
+def search_series(request):
+    view = Series.search_attributes(
+        request.registry['godhand:db'], **request.validated)
+    return {'items': [dict(x.items()) for x in iter(view)]}
 
 
 def get_doc_from_request(request):
@@ -28,6 +47,23 @@ def get_doc_from_request(request):
         if doc is None:
             raise HTTPNotFound(v['series'])
     return doc
+
+
+class GetSeriesCollectionSchema(co.MappingSchema):
+    genre = co.SchemaNode(co.String(), location='querystring', missing=None)
+    name = co.SchemaNode(co.String(), location='querystring', missing=None)
+    include_empty = co.SchemaNode(
+        co.Boolean(), location='querystring', missing=False)
+
+
+@series_collection.get(permission='view', schema=GetSeriesCollectionSchema)
+def get_series_collection(request):
+    db = request.registry['godhand:db']
+    try:
+        view = Series.query(db, **request.validated)
+    except ValueError as e:
+        raise HTTPBadRequest(repr(e))
+    return {'items': [dict(x.items()) for x in iter(view)]}
 
 
 class PostSeriesCollectionSchema(co.MappingSchema):
@@ -68,9 +104,9 @@ def create_series(request):
     """
     doc = Series(**request.validated)
     doc.store(request.registry['godhand:db'])
-    Series.by_meta.sync(request.registry['godhand:db'])
-    Series.by_genre.sync(request.registry['godhand:db'])
-    Series.by_series.sync(request.registry['godhand:db'])
+    Series.by_attribute.sync(request.registry['godhand:db'])
+    Series.search.sync(request.registry['godhand:db'])
+    Series.search_by_attribute.sync(request.registry['godhand:db'])
     return {
         'series': [doc.id],
     }
@@ -109,9 +145,9 @@ def upload_volume(request):
         doc.add_volume(volume)
         volume_ids.append(volume.id)
     doc.store(db)
-    Series.by_meta.sync(request.registry['godhand:db'])
-    Series.by_genre.sync(request.registry['godhand:db'])
-    Series.by_series.sync(request.registry['godhand:db'])
+    Series.by_attribute.sync(request.registry['godhand:db'])
+    Series.search.sync(request.registry['godhand:db'])
+    Series.search_by_attribute.sync(request.registry['godhand:db'])
     return {'volumes': volume_ids}
 
 
