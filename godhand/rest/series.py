@@ -7,7 +7,6 @@ from ..models import Series
 from ..models import SeriesReaderProgress
 from ..models import Volume
 from .utils import GodhandService
-from .utils import paginate_view
 
 
 search = GodhandService(
@@ -32,25 +31,9 @@ class SearchSeriesSchema(co.MappingSchema):
 
 @search.get(permission='view', schema=SearchSeriesSchema)
 def search_series(request):
-    v = request.validated
-    kws = {
-        'group': True,
-        'startkey': [None if v['include_empty'] else True],
-        'endkey': [None if v['include_empty'] else True],
-    }
-    if v['attribute']:
-        kws['startkey'].append(v['attribute'])
-        kws['endkey'].append(v['attribute'])
-        view = Series.search_by_attribute
-    else:
-        view = Series.search
-    if v['query']:
-        kws['startkey'].append(v['query'])
-        kws['endkey'].append(v['query'] + u'\ufff0')
-    else:
-        kws['startkey'].append(None)
-        kws['endkey'].append({})
-    return paginate_view(request, view, **kws)
+    view = Series.search_attributes(
+        request.registry['godhand:db'], **request.validated)
+    return {'items': [dict(x.items()) for x in iter(view)]}
 
 
 def get_doc_from_request(request):

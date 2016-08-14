@@ -88,6 +88,7 @@ class Series(Document):
         kws = {
             'startkey': [None if include_empty else True],
             'endkey': [None if include_empty else True],
+            'limit': 50,
         }
         if genre:
             kws['startkey'].extend(['genre:' + genre, None])
@@ -99,6 +100,29 @@ class Series(Document):
             kws['startkey'].append('name:')
             kws['endkey'].append(u'name:\ufff0')
         return Series.by_attribute(db, **kws)
+
+    @classmethod
+    def search_attributes(
+            cls, db, attribute=None, query=None, include_empty=False):
+        kws = {
+            'startkey': [None if include_empty else True],
+            'endkey': [None if include_empty else True],
+            'limit': 50,
+            'group': True,
+        }
+        if attribute:
+            view = Series.search_by_attribute
+            kws['startkey'].append(attribute)
+            kws['endkey'].append(attribute)
+        else:
+            view = Series.search
+        if query:
+            kws['startkey'].append(query)
+            kws['endkey'].append(query + u'\ufff0')
+        else:
+            kws['startkey'].append(None)
+            kws['endkey'].append({})
+        return view(db, **kws)
 
     def add_volume(self, volume):
         self.volumes.append(

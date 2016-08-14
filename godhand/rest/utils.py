@@ -29,16 +29,3 @@ def default_acl(request):
 
 
 GodhandService = partial(Service, acl=default_acl, permission='view')
-
-
-def paginate_view(request, view, startkey=None, endkey=None, group=False):
-    db = request.registry['godhand:db']
-    kws = {'limit': 50}
-    if startkey:
-        kws['startkey'] = startkey
-    if endkey:
-        kws['endkey'] = endkey
-    kws['group'] = group
-    return {
-        'items': [dict(x.items()) for x in iter(view(db, **kws))],
-    }
