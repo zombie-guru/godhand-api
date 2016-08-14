@@ -41,6 +41,27 @@ class Series(Document):
         'matches': x['value'],
     })
 
+    search_by_attribute = ViewField('search_by_attribute', '''
+    function(doc) {
+        if (doc['@class'] === 'Series') {
+            emit([null, 'name', doc.name], 1);
+            doc.genres.map(function(genre) {
+                emit([null, 'genres', genre], 1);
+            });
+            if (doc.volumes.length > 0) {
+                emit([true, 'name', doc.name], 1);
+                doc.genres.map(function(genre) {
+                    emit([true, 'genres', genre], 1);
+                });
+            }
+        }
+    }
+    ''', reduce_fun='_sum', wrapper=lambda x: {
+        'attribute': x['key'][1],
+        'value': x['key'][2],
+        'matches': x['value'],
+    })
+
     by_name = ViewField('by_name', '''
     function(doc) {
         if ((doc['@class'] === 'Series') && (doc.volumes.length > 0)) {

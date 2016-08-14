@@ -24,6 +24,9 @@ class SearchSeriesSchema(co.MappingSchema):
     query = co.SchemaNode(co.String(), location='querystring', missing=None)
     include_empty = co.SchemaNode(
         co.Boolean(), location='querystring', missing=False)
+    attribute = co.SchemaNode(
+        co.String(), location='querystring', missing=False,
+        validator=co.OneOf(['genres', 'name']))
 
 
 @search.get(permission='view', schema=SearchSeriesSchema)
@@ -34,13 +37,19 @@ def search_series(request):
         'startkey': [None if v['include_empty'] else True],
         'endkey': [None if v['include_empty'] else True],
     }
+    if v['attribute']:
+        kws['startkey'].append(v['attribute'])
+        kws['endkey'].append(v['attribute'])
+        view = Series.search_by_attribute
+    else:
+        view = Series.search
     if v['query']:
         kws['startkey'].append(v['query'])
         kws['endkey'].append(v['query'] + u'\ufff0')
     else:
         kws['startkey'].append(None)
         kws['endkey'].append({})
-    return paginate_view(request, Series.search, **kws)
+    return paginate_view(request, view, **kws)
 
 
 def get_doc_from_request(request):
@@ -101,6 +110,7 @@ def create_series(request):
     doc.store(request.registry['godhand:db'])
     Series.by_name.sync(request.registry['godhand:db'])
     Series.search.sync(request.registry['godhand:db'])
+    Series.search_by_attribute.sync(request.registry['godhand:db'])
     return {
         'series': [doc.id],
     }
@@ -141,6 +151,7 @@ def upload_volume(request):
     doc.store(db)
     Series.by_name.sync(request.registry['godhand:db'])
     Series.search.sync(request.registry['godhand:db'])
+    Series.search_by_attribute.sync(request.registry['godhand:db'])
     return {'volumes': volume_ids}
 
 

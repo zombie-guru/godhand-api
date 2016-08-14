@@ -170,6 +170,38 @@ class TestSingleSeries(SingleSeriesTest):
             '/search', params={'query': 'me', 'include_empty': True}).json_body
         self.assertEquals(expected, response)
 
+    def test_search_by_name(self):
+        expected = {'items': []}
+        response = self.api.get(
+            '/search', params={'attribute': 'name'}).json_body
+        self.assertEquals(expected, response)
+
+    def test_search_by_name_all(self):
+        expected = {'items': [
+            {'attribute': 'name', 'value': 'Berserk', 'matches': 1},
+        ]}
+        response = self.api.get(
+            '/search',
+            params={'attribute': 'name', 'include_empty': True}).json_body
+        self.assertEquals(expected, response)
+
+    def test_search_by_genres(self):
+        expected = {'items': []}
+        response = self.api.get(
+            '/search', params={'attribute': 'genres'}).json_body
+        self.assertEquals(expected, response)
+
+    def test_search_by_genres_all(self):
+        expected = {'items': [
+            {'attribute': 'genres', 'value': 'action', 'matches': 1},
+            {'attribute': 'genres', 'value': 'meme', 'matches': 1},
+        ]}
+        response = self.api.get(
+            '/search',
+            params={'attribute': 'genres', 'include_empty': True},
+        ).json_body
+        self.assertEquals(expected, response)
+
 
 class SingleVolumeInSeriesTest(SingleSeriesTest):
     def setUp(self):
@@ -237,6 +269,43 @@ class TestSingleVolumeInSeries(SingleVolumeInSeriesTest):
             '/search', params={'include_empty': True}).json_body
         self.assertEquals(expected, response)
 
+    def test_search_by_name(self):
+        expected = {'items': [
+            {'attribute': 'name', 'value': 'Berserk', 'matches': 1},
+        ]}
+        response = self.api.get(
+            '/search', params={'attribute': 'name'}).json_body
+        self.assertEquals(expected, response)
+
+    def test_search_by_name_all(self):
+        expected = {'items': [
+            {'attribute': 'name', 'value': 'Berserk', 'matches': 1},
+        ]}
+        response = self.api.get(
+            '/search',
+            params={'attribute': 'name', 'include_empty': True}).json_body
+        self.assertEquals(expected, response)
+
+    def test_search_by_genres(self):
+        expected = {'items': [
+            {'attribute': 'genres', 'value': 'action', 'matches': 1},
+            {'attribute': 'genres', 'value': 'meme', 'matches': 1},
+        ]}
+        response = self.api.get(
+            '/search', params={'attribute': 'genres'}).json_body
+        self.assertEquals(expected, response)
+
+    def test_search_by_genres_all(self):
+        expected = {'items': [
+            {'attribute': 'genres', 'value': 'action', 'matches': 1},
+            {'attribute': 'genres', 'value': 'meme', 'matches': 1},
+        ]}
+        response = self.api.get(
+            '/search',
+            params={'attribute': 'genres', 'include_empty': True},
+        ).json_body
+        self.assertEquals(expected, response)
+
     def test_search_query(self):
         expected = {'items': [
             {'attribute': 'genres', 'value': 'meme', 'matches': 1},
@@ -250,4 +319,21 @@ class TestSingleVolumeInSeries(SingleVolumeInSeriesTest):
         ]}
         response = self.api.get(
             '/search', params={'query': 'me', 'include_empty': True}).json_body
+        self.assertEquals(expected, response)
+
+    def test_search_query_by_name(self):
+        expected = {'items': [
+            {'attribute': 'name', 'value': 'Berserk', 'matches': 1},
+        ]}
+        response = self.api.get(
+            '/search', params={'query': 'be', 'attribute': 'name'}).json_body
+        self.assertEquals(expected, response)
+
+    def test_search_query_by_genres(self):
+        expected = {'items': [
+            {'attribute': 'genres', 'value': 'action', 'matches': 1},
+            {'attribute': 'genres', 'value': 'meme', 'matches': 1},
+        ]}
+        response = self.api.get(
+            '/search', params={'attribute': 'genres'}).json_body
         self.assertEquals(expected, response)
