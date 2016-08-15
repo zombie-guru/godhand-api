@@ -51,8 +51,9 @@ def setup_db(config, couchdb_url, root_email):
         authdb = client['auth']
     config.registry['godhand:db'] = db
     config.registry['godhand:authdb'] = authdb
-    # config.add_request_method(has_permission)
-    root = User(email=root_email, groups=['admin', 'user'], id='user:root')
+    root = User.load(authdb, 'user:root')
+    root.email = root_email
+    root.groups = ['admin', 'user']
     root.store(authdb)
     User.by_email.sync(authdb)
 
