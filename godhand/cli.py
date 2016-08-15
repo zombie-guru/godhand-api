@@ -1,3 +1,4 @@
+from itertools import islice
 import argparse
 import json
 import logging
@@ -51,6 +52,18 @@ def upload(couchdb_url=None, lines=None):
         books_path=os.path.abspath(os.path.curdir),
         couchdb_url=couchdb_url)
     db = get_db(cfg)
+    docs = iterdocs(lines)
+    while True:
+        docs = list(islice(docs, 0, 500))
+        if len(docs) == 0:
+            break
+        db.update(docs)
+    Series.search.sync(db)
+    Series.search_by_attribute.sync(db)
+    Series.by_attribute.sync(db)
+
+
+def iterdocs(lines):
     for n_line, line in enumerate(lines):
         if n_line and (n_line % 100) == 0:
             LOG.info('uploaded {} documents'.format(n_line))
@@ -72,9 +85,7 @@ def upload(couchdb_url=None, lines=None):
         doc['volumes'] = []
 
         doc_id = replace_uri_prefixes(doc.pop('uri')[0])
-
-        s = Series(id=doc_id, **doc)
-        s.store(db)
+        yield Series(id=doc_id, **doc)
 
 
 def get_db(cfg):
