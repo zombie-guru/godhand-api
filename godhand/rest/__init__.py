@@ -52,6 +52,8 @@ def setup_db(config, couchdb_url, root_email):
     config.registry['godhand:db'] = db
     config.registry['godhand:authdb'] = authdb
     root = User.load(authdb, 'user:root')
+    if root is None:
+        root = User(id='user:root')
     root.email = root_email
     root.groups = ['admin', 'user']
     root.store(authdb)
