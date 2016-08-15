@@ -54,12 +54,15 @@ def upload(couchdb_url=None, lines=None):
     db = get_db(cfg)
     docs = iterdocs(lines)
     while True:
-        docs = list(islice(docs, 0, 500))
-        if len(docs) == 0:
+        batch = list(islice(docs, 0, 500))
+        if len(batch) == 0:
             break
-        db.update(docs)
+        db.update(batch)
+    LOG.info('syncing Series.search')
     Series.search.sync(db)
+    LOG.info('syncing Series.search_by_attribute')
     Series.search_by_attribute.sync(db)
+    LOG.info('syncing Series.by_attribute')
     Series.by_attribute.sync(db)
 
 
@@ -67,7 +70,10 @@ def iterdocs(lines):
     for n_line, line in enumerate(lines):
         if n_line and (n_line % 100) == 0:
             LOG.info('uploaded {} documents'.format(n_line))
-        doc = json.loads(line)
+        try:
+            doc = json.loads(line)
+        except ValueError:
+            return
         keys = (
             'name', 'description', 'author', 'magazine', 'number_of_volumes')
         for key in keys:
