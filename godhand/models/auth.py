@@ -10,6 +10,8 @@ from couchdb.mapping import ViewField
 class AntiForgeryToken(Document):
     class_ = TextField('@class', default='AntiForgeryToken')
     added = DateTimeField(default=datetime.now)
+    callback_url = TextField()
+    error_callback_url = TextField()
 
 
 class User(Document):

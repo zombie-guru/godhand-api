@@ -3,8 +3,10 @@ import os
 
 from oauth2client import client
 from pyramid.httpexceptions import HTTPForbidden
+from pyramid.httpexceptions import HTTPFound
 from pyramid.httpexceptions import HTTPUnauthorized
 from pyramid.httpexceptions import HTTPNotFound
+from pyramid.httpexceptions import HTTPSeeOther
 from pyramid.security import forget
 from pyramid.security import remember
 import colander as co
@@ -45,14 +47,14 @@ permission_test = GodhandService(
     Useful for auth_request in nginx.
     '''
 )
-oauth_init = GodhandService(
-    name='oauth-init',
-    path='/oauth-init',
+oauth2_init = GodhandService(
+    name='oauth2-init',
+    path='/oauth2-init',
     permission='authenticate',
 )
-oauth_callback = GodhandService(
-    name='oauth-callback',
-    path='/oauth-callback',
+oauth2_callback = GodhandService(
+    name='oauth2-callback',
+    path='/oauth2-callback',
     permission='authenticate',
 )
 
@@ -117,22 +119,31 @@ def create_anti_forgery_token():
     return 'token:' + hashlib.sha256(os.urandom(1024)).hexdigest()
 
 
-@oauth_init.get()
-def init_oauth(request):
+class InitOauth2Schema(co.MappingSchema):
+    callback_url = co.SchemaNode(
+        co.String(), location='querystring', validator=co.url)
+    error_callback_url = co.SchemaNode(
+        co.String(), location='querystring', validator=co.url)
+
+
+@oauth2_init.get(schema=InitOauth2Schema)
+def init_oauth2(request):
     """ Redirect user to this URL to start OAuth process.
     """
+    v = request.validated
     email = request.unauthenticated_userid or ''
-    token = AntiForgeryToken(id=create_anti_forgery_token())
+    token = AntiForgeryToken(id=create_anti_forgery_token(), **v)
     token.store(request.registry['godhand:authdb'])
     cfg = request.registry['godhand:cfg']
-    return {
+    query = {
         'client_id': cfg.google_client_id,
         'state': token.id,
         'application_name': cfg.google_client_appname,
         'scope': 'openid email',
-        'redirect_uri': request.route_url('oauth-callback'),
+        'redirect_uri': request.route_url('oauth2-callback'),
         'login_hint': email,
     }
+    return HTTPFound(request.route_url('google-oauth2', _query=query))
 
 
 class VerifyOAuthTokenSchema(co.MappingSchema):
@@ -140,8 +151,8 @@ class VerifyOAuthTokenSchema(co.MappingSchema):
     code = co.SchemaNode(co.String(), location='querystring')
 
 
-@oauth_callback.get(schema=VerifyOAuthTokenSchema)
-def verify_oauth_token(request):
+@oauth2_callback.get(schema=VerifyOAuthTokenSchema)
+def verify_oauth2_token(request):
     """ OAuth provider should redirect user to this endpoint.
     """
     authdb = request.registry['godhand:authdb']
@@ -149,7 +160,8 @@ def verify_oauth_token(request):
     # validate anti-forgery token
     token = AntiForgeryToken.load(authdb, request.validated['state'])
     if token is None:
-        raise HTTPUnauthorized()
+        raise HTTPUnauthorized(
+            'Callback must be initialized from /oauth2-init')
     else:
         authdb.delete(token)
     # validate code sent by client with google
@@ -160,18 +172,18 @@ def verify_oauth_token(request):
             'state': request.validated['state'],
             'client_id': cfg.google_client_id,
             'client_secret': cfg.google_client_secret,
-            'redirect_uri': request.route_url('oauth-callback'),
+            'redirect_uri': request.route_url('oauth2-callback'),
             'grant_type': 'authorization_code',
         },
     )
     if r.status_code != 200:
-        raise HTTPUnauthorized()
+        raise HTTPSeeOther(token.error_callback_url)
     info = r.json()
     login_info = client.verify_id_token(info['id_token'], cfg.google_client_id)
     if login_info['email_verified'] and login_info['email']:
         # if all is good, sign the cookie and send back to client
         response = request.response
         response.headers.extend(remember(request, login_info['email']))
-        return {'email': login_info['email']}
+        return HTTPFound(token.callback_url, headers=response.headers)
     else:
-        raise HTTPUnauthorized()
+        raise HTTPSeeOther(token.error_callback_url)

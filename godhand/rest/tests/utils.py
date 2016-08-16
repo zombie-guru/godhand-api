@@ -1,6 +1,7 @@
-from PIL import Image
 from tempfile import NamedTemporaryFile
 from tempfile import TemporaryFile
+from urllib.parse import urlparse
+from urllib.parse import parse_qs
 import contextlib
 import logging
 import os
@@ -8,6 +9,7 @@ import tarfile
 import unittest
 import zipfile
 
+from PIL import Image
 from fixtures import TempDir
 from webtest import TestApp
 import couchdb.client
@@ -63,21 +65,20 @@ class ApiTest(unittest.TestCase):
                 pass
 
     def oauth2_login(self, email):
-        state = self.api.get('/oauth-init').json_body.pop('state')
+        response = self.api.get('/oauth2-init', params={
+            'callback_url': 'http://success',
+            'error_callback_url': 'http://error',
+        }, status=302)
+        url = urlparse(response.headers['location'])
+        self.assertEquals(url.hostname, 'accounts.google.com')
+        self.assertEquals(url.path, '/o/oauth2/v2/auth')
+        query = parse_qs(url.query)
+        self.assertEquals(
+            query['redirect_uri'], ['http://localhost/oauth2-callback'])
+        state = query['state'][0]
+        assert state
         with mock.patch('godhand.rest.auth.client') as client:
             with mock.patch('godhand.rest.auth.requests') as requests:
-                expected = {
-                    'client_id': self.client_id,
-                    'application_name': self.client_appname,
-                    'scope': 'openid email',
-                    'redirect_uri': 'http://localhost/oauth-callback',
-                    'login_hint': '',
-                }
-                response = self.api.get('/oauth-init').json_body
-                state = response.pop('state')
-                assert state
-                assert expected == response
-
                 requests.post.return_value.status_code = 200
                 requests.post.return_value.json.return_value = {
                     'id_token': 'myidtoken',
@@ -86,12 +87,11 @@ class ApiTest(unittest.TestCase):
                     'email_verified': True, 'email': email,
                 }
 
-                expected = {'email': email}
                 response = self.api.get(
-                    '/oauth-callback',
+                    '/oauth2-callback',
                     params={'state': state, 'code': 'mycode'},
-                ).json_body
-                assert expected == response
+                )
+                assert response.headers['location'] == 'http://success'
 
                 requests.post.assert_called_once_with(
                     'https://www.googleapis.com/oauth2/v4/token',
@@ -100,7 +100,7 @@ class ApiTest(unittest.TestCase):
                         'state': state,
                         'client_id': self.client_id,
                         'client_secret': self.client_secret,
-                        'redirect_uri': 'http://localhost/oauth-callback',
+                        'redirect_uri': 'http://localhost/oauth2-callback',
                         'grant_type': 'authorization_code',
                     },
                 )
