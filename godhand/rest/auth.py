@@ -142,6 +142,7 @@ def init_oauth2(request):
         'scope': 'openid email',
         'redirect_uri': request.route_url('oauth2-callback'),
         'login_hint': email,
+        'response_type': 'code',
     }
     return HTTPFound(request.route_url('google-oauth2', _query=query))
 
