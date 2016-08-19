@@ -294,6 +294,13 @@ class TestSingleVolumeInSeries(SingleVolumeInSeriesTest):
             x.pop('_rev')
         self.assertEquals(expected, response)
 
+    def test_get_collection_by_genre_partial(self):
+        expected = {'items': [self.expected_series]}
+        response = self.api.get('/series', params={'genre': 'ME'}).json_body
+        for x in response['items']:
+            x.pop('_rev')
+        self.assertEquals(expected, response)
+
     def test_get_collection_by_genre_negative(self):
         expected = {'items': []}
         response = self.api.get(
@@ -304,8 +311,18 @@ class TestSingleVolumeInSeries(SingleVolumeInSeriesTest):
 
     def test_get_collection_by_name(self):
         expected = {'items': [self.expected_series]}
+        response = self.api.get('/series', params={
+            'name': 'berserk',
+            'full_match': 'true',
+        }).json_body
+        for x in response['items']:
+            x.pop('_rev')
+        self.assertEquals(expected, response)
+
+    def test_get_collection_by_name_partial(self):
+        expected = {'items': [self.expected_series]}
         response = self.api.get(
-            '/series', params={'name': 'Berserk'}).json_body
+            '/series', params={'name': 'be'}).json_body
         for x in response['items']:
             x.pop('_rev')
         self.assertEquals(expected, response)

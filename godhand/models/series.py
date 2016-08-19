@@ -65,24 +65,21 @@ class Series(Document):
     by_attribute = ViewField('by_attribute', '''
     function(doc) {
         if (doc['@class'] === 'Series') {
-            emit([null, 'name:' + doc.name], doc);
-            emit([doc.volumes.length > 0, 'name:' + doc.name], doc);
+            var name = doc.name.toLowerCase();
+            emit([null, 'name:' + name], doc);
+            emit([doc.volumes.length > 0, 'name:' + name], doc);
             doc.genres.map(function(genre) {
-                emit(
-                    [null, 'genre:' + genre, doc.name],
-                    doc
-                );
-                emit(
-                    [doc.volumes.length > 0, 'genre:' + genre, doc.name],
-                    doc
-                );
+                genre = genre.toLowerCase();
+                emit([null, 'genre:' + genre, name], doc);
+                emit([doc.volumes.length > 0, 'genre:' + genre, name], doc);
             })
         }
     }
     ''')
 
     @classmethod
-    def query(cls, db, genre=None, name=None, include_empty=False):
+    def query(cls, db, genre=None, name=None, include_empty=False,
+              full_match=False):
         if genre is not None and name is not None:
             raise ValueError('Only genre or name can be supplied')
         kws = {
@@ -91,11 +88,19 @@ class Series(Document):
             'limit': 50,
         }
         if genre:
+            genre = genre.lower()
             kws['startkey'].extend(['genre:' + genre, None])
-            kws['endkey'].extend(['genre:' + genre, {}])
+            if full_match:
+                kws['endkey'].extend(['genre:' + genre, {}])
+            else:
+                kws['endkey'].extend([u'genre:\ufff0', {}])
         elif name:
+            name = name.lower()
             kws['startkey'].append('name:' + name)
-            kws['endkey'].append('name:' + name)
+            if full_match:
+                kws['endkey'].append('name:' + name)
+            else:
+                kws['endkey'].append(u'name:\ufff0')
         else:
             kws['startkey'].append('name:')
             kws['endkey'].append(u'name:\ufff0')

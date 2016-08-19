@@ -54,6 +54,9 @@ class GetSeriesCollectionSchema(co.MappingSchema):
     name = co.SchemaNode(co.String(), location='querystring', missing=None)
     include_empty = co.SchemaNode(
         co.Boolean(), location='querystring', missing=False)
+    full_match = co.SchemaNode(
+        co.Boolean(), location='querystring', missing=False,
+        description='Only return full matches.')
 
 
 @series_collection.get(permission='view', schema=GetSeriesCollectionSchema)
