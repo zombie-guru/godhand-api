@@ -76,6 +76,6 @@ class CbrBookExtractor(BookExtractor):
     def extract(self):
         with NamedTemporaryFile() as f:
             for line in self.f:
-                f.write(f)
+                f.write(line)
             f.flush()
             subprocess.check_call(['unrar', 'x', f.name, self.path])
