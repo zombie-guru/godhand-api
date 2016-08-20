@@ -93,14 +93,14 @@ class Series(Document):
             if full_match:
                 kws['endkey'].extend(['genre:' + genre, {}])
             else:
-                kws['endkey'].extend([u'genre:\ufff0', {}])
+                kws['endkey'].extend([u'genre:' + genre + u'\ufff0'])
         elif name:
             name = name.lower()
             kws['startkey'].append('name:' + name)
             if full_match:
                 kws['endkey'].append('name:' + name)
             else:
-                kws['endkey'].append(u'name:\ufff0')
+                kws['endkey'].append(u'name:' + name + u'\ufff0')
         else:
             kws['startkey'].append('name:')
             kws['endkey'].append(u'name:\ufff0')
