@@ -20,48 +20,6 @@ class Series(Document):
         volume_number=IntegerField(),
     )))
 
-    search = ViewField('search', '''
-    function(doc) {
-        if (doc['@class'] === 'Series') {
-            emit([null, doc.name, 'name'], 1);
-            doc.genres.map(function(genre) {
-                emit([null, genre, 'genres'], 1);
-            });
-            if (doc.volumes.length > 0) {
-                emit([true, doc.name, 'name'], 1);
-                doc.genres.map(function(genre) {
-                    emit([true, genre, 'genres'], 1);
-                });
-            }
-        }
-    }
-    ''', reduce_fun='_sum', wrapper=lambda x: {
-        'attribute': x['key'][2],
-        'value': x['key'][1],
-        'matches': x['value'],
-    })
-
-    search_by_attribute = ViewField('search_by_attribute', '''
-    function(doc) {
-        if (doc['@class'] === 'Series') {
-            emit([null, 'name', doc.name], 1);
-            doc.genres.map(function(genre) {
-                emit([null, 'genres', genre], 1);
-            });
-            if (doc.volumes.length > 0) {
-                emit([true, 'name', doc.name], 1);
-                doc.genres.map(function(genre) {
-                    emit([true, 'genres', genre], 1);
-                });
-            }
-        }
-    }
-    ''', reduce_fun='_sum', wrapper=lambda x: {
-        'attribute': x['key'][1],
-        'value': x['key'][2],
-        'matches': x['value'],
-    })
-
     by_attribute = ViewField('by_attribute', '''
     function(doc) {
         if (doc['@class'] === 'Series') {
@@ -105,29 +63,6 @@ class Series(Document):
             kws['startkey'].append('name:')
             kws['endkey'].append(u'name:\ufff0')
         return Series.by_attribute(db, **kws)
-
-    @classmethod
-    def search_attributes(
-            cls, db, attribute=None, query=None, include_empty=False):
-        kws = {
-            'startkey': [None if include_empty else True],
-            'endkey': [None if include_empty else True],
-            'limit': 50,
-            'group': True,
-        }
-        if attribute:
-            view = Series.search_by_attribute
-            kws['startkey'].append(attribute)
-            kws['endkey'].append(attribute)
-        else:
-            view = Series.search
-        if query:
-            kws['startkey'].append(query)
-            kws['endkey'].append(query + u'\ufff0')
-        else:
-            kws['startkey'].append(None)
-            kws['endkey'].append({})
-        return view(db, **kws)
 
     def add_volume(self, volume):
         self.volumes.append(
