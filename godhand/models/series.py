@@ -15,6 +15,10 @@ class Series(Document):
     magazine = TextField()
     number_of_volumes = IntegerField()
     genres = ListField(TextField())
+    cover_page = DictField(Mapping.build(
+        volume_id=TextField(),
+        page_number=IntegerField(),
+    ))
     volumes = ListField(DictField(Mapping.build(
         id=TextField(),
         volume_number=IntegerField(),
