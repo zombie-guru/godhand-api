@@ -11,7 +11,7 @@ from .utils import tmp_cbt
 
 class TestEmpty(WriteUserLoggedInTest):
     def test_get_missing(self):
-        self.api.get('/series/missing', status=404)
+        self.api.get('/series/missing', status=400)
 
     def test_upload_missing_series(self):
         with tmp_cbt(['page{:x}.jpg'.format(x) for x in range(15)]) as f:
@@ -19,16 +19,16 @@ class TestEmpty(WriteUserLoggedInTest):
                 '/series/missing/volumes',
                 upload_files=[('input', 'volume-007.cbt', f.read())],
                 content_type='multipart/form-data',
-                status=404
+                status=400
             )
 
     def test_update_progress_missing(self):
         self.api.put_json(
             '/volumes/missing/reader_progress',
-            {'page_number': 7}, status=404)
+            {'page_number': 7}, status=400)
 
     def test_get_progress_missing(self):
-        self.api.get('/series/missing/reader_progress', status=404)
+        self.api.get('/series/missing/reader_progress', status=400)
 
     def test_create_series(self):
         response = self.api.post_json(
