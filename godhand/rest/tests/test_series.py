@@ -53,6 +53,10 @@ class TestEmpty(WriteUserLoggedInTest):
             'genres': ['action', 'meme'],
             'volumes': [],
             'author': None,
+            'cover_page': {
+                'page_number': None,
+                'volume_id': None,
+            },
             'magazine': None,
             'number_of_volumes': None,
         }
@@ -88,6 +92,10 @@ class SingleSeriesTest(WriteUserLoggedInTest):
             'genres': ['action', 'meme'],
             'volumes': [],
             'author': None,
+            'cover_page': {
+                'page_number': None,
+                'volume_id': None,
+            },
             'magazine': None,
             'number_of_volumes': None,
         }
@@ -210,6 +218,10 @@ class SingleVolumeInSeriesTest(SingleSeriesTest):
                 }
             ],
             'author': None,
+            'cover_page': {
+                'page_number': None,
+                'volume_id': None,
+            },
             'magazine': None,
             'number_of_volumes': None,
         }
@@ -305,3 +317,36 @@ class TestSingleVolumeInSeries(SingleVolumeInSeriesTest):
     def test_get_image_by_page_number_missing(self):
         self.api.get(
             '/volumes/{}/pages/10000'.format(self.volume_id), status=404)
+
+    def test_set_series_cover_page(self):
+        self.api.put_json(
+            '/series/{}/cover_page'.format(self.series_id), {
+                'volume_id': self.volume_id,
+                'page_number': 5,
+            }
+        )
+        expected = self.expected_series
+        expected['cover_page']['page_number'] = 5
+        expected['cover_page']['volume_id'] = self.volume_id
+        response = self.api.get('/series/{}'.format(self.series_id)).json_body
+        for key in ('_rev',):
+            response.pop(key)
+        self.assertEquals(expected, response)
+
+    def test_set_series_cover_page_bad_volume(self):
+        self.api.put_json(
+            '/series/{}/cover_page'.format(self.series_id), {
+                'volume_id': 'missing',
+                'page_number': 5,
+            },
+            status=400,
+        )
+
+    def test_set_series_cover_page_bad_page_number(self):
+        self.api.put_json(
+            '/series/{}/cover_page'.format(self.series_id), {
+                'volume_id': 'missing',
+                'page_number': 100000,
+            },
+            status=400,
+        )

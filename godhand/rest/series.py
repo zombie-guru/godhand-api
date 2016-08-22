@@ -17,6 +17,8 @@ class SeriesVolumePathSchema(co.MappingSchema):
 series_collection = GodhandService(
     name='series_collection', path='/series')
 series = GodhandService(name='series', path='/series/{series}')
+series_cover_page = GodhandService(
+    name='series_cover_page', path='/series/{series}/cover_page')
 series_volumes = GodhandService(
     name='series_volumes', path='/series/{series}/volumes')
 series_volume = GodhandService(
@@ -143,6 +145,7 @@ def upload_volume(request):
 
 @series_volume.get(
     schema=SeriesVolumePathSchema,
+    permission='view',
 )
 def get_series_volume(request):
     """ Get a series volume by index.
@@ -157,6 +160,36 @@ def get_series_volume(request):
     for page in result['pages']:
         page['url'] = request.static_url(page['path'])
     return result
+
+
+class SetSeriesCoverPageSchema(SeriesPathSchema):
+    volume_id = co.SchemaNode(co.String(), location='body')
+    page_number = co.SchemaNode(
+        co.Integer(), location='body', validator=co.Range(min=0))
+
+
+@series_cover_page.put(
+    schema=SetSeriesCoverPageSchema,
+    permission='write',
+)
+def set_series_cover_page(request):
+    db = request.registry['godhand:db']
+    v = request.validated
+    series = Series.load(db, v['series'])
+    if series is None:
+        raise HTTPBadRequest('Invalid series.')
+    volume = Volume.load(db, v['volume_id'])
+    if volume is None:
+        raise HTTPBadRequest('Invalid volume.')
+    try:
+        volume.pages[v['page_number']]
+    except IndexError:
+        raise HTTPBadRequest('Invalid page number')
+    series.cover_page = {
+        'volume_id': volume.id,
+        'page_number': v['page_number'],
+    }
+    series.store(db)
 
 
 class StoreReaderProgressSchema(SeriesPathSchema):
