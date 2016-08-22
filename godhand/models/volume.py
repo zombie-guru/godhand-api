@@ -52,6 +52,7 @@ class Volume(Document):
     class_ = TextField('@class', default='Volume')
     filename = TextField()
     volume_number = IntegerField()
+    language = TextField()
     series_id = TextField()
     pages = ListField(DictField(Mapping.build(
         path=TextField(),
