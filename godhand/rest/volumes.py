@@ -11,6 +11,10 @@ class VolumePathSchema(co.MappingSchema):
     volume = co.SchemaNode(co.String(), location='path')
 
 
+class VolumePagePathSchema(VolumePathSchema):
+    page = co.SchemaNode(co.Integer(), location='path')
+
+
 volumes = GodhandService(
     name='volumes',
     path='/volumes',
@@ -19,6 +23,10 @@ volume = GodhandService(
     name='volume',
     path='/volumes/{volume}',
     schema=VolumePathSchema,
+)
+volume_page = GodhandService(
+    name='volume_page',
+    path='/volumes/{volume}/pages/{page}'
 )
 
 
@@ -75,3 +83,26 @@ def update_volume_meta(request):
             continue
         volume[key] = value
     volume.store(request.registry['godhand:db'])
+
+
+@volume_page.get(
+    permission='view',
+    schema=VolumePagePathSchema,
+)
+def get_volume_page(request):
+    """ Get a volume page.
+    """
+    volume = Volume.load(
+        request.registry['godhand:db'], request.validated['volume'])
+    if volume is None:
+        raise HTTPNotFound()
+    try:
+        page = volume.pages[request.validated['page']]
+    except IndexError:
+        raise HTTPNotFound('Page does not exist.')
+    return {
+        'url': request.static_url(page['path']),
+        'orientation': page['orientation'],
+        'width': page['width'],
+        'height': page['height'],
+    }

@@ -53,6 +53,10 @@ class TestEmpty(WriteUserLoggedInTest):
             'genres': ['action', 'meme'],
             'volumes': [],
             'author': None,
+            'cover_page': {
+                'page_number': None,
+                'volume_id': None,
+            },
             'magazine': None,
             'number_of_volumes': None,
         }
@@ -88,6 +92,10 @@ class SingleSeriesTest(WriteUserLoggedInTest):
             'genres': ['action', 'meme'],
             'volumes': [],
             'author': None,
+            'cover_page': {
+                'page_number': None,
+                'volume_id': None,
+            },
             'magazine': None,
             'number_of_volumes': None,
         }
@@ -136,6 +144,7 @@ class TestSingleSeries(SingleSeriesTest):
                 'volume_number': 7,
                 'language': None,
                 'filename': 'volume-007' + cls.ext,
+                'series_id': self.series_id,
             }
             response = self.api.get('/volumes/{}'.format(volume_id)).json_body
             response.pop('_rev')
@@ -210,6 +219,10 @@ class SingleVolumeInSeriesTest(SingleSeriesTest):
                 }
             ],
             'author': None,
+            'cover_page': {
+                'page_number': None,
+                'volume_id': None,
+            },
             'magazine': None,
             'number_of_volumes': None,
         }
@@ -288,3 +301,70 @@ class TestSingleVolumeInSeries(SingleVolumeInSeriesTest):
         response = self.api.get('/volumes/{}'.format(self.volume_id)).json_body
         self.assertEquals(response['language'], None)
         self.assertEquals(response['volume_number'], 10)
+
+    def test_get_volume_by_index(self):
+        expected = {
+            '@class': 'Volume',
+            '_id': self.volume_id,
+            'filename': 'volume-007.cbt',
+            'series_id': self.series_id,
+            'language': None,
+            'volume_number': 7,
+        }
+        response = self.api.get(
+            '/series/{}/volumes/0'.format(self.series_id)).json_body
+        for key in ('_rev', 'pages'):
+            response.pop(key)
+        self.assertEquals(expected, response)
+
+    def test_get_volume_by_index_missing(self):
+        self.api.get(
+            '/series/{}/volumes/1'.format(self.series_id), status=404)
+
+    def test_get_image_by_page_number(self):
+        expected = {
+            'height': 128,
+            'width': 128,
+            'orientation': 'horizontal',
+        }
+        response = self.api.get(
+            '/volumes/{}/pages/0'.format(self.volume_id)).json_body
+        self.assertEquals('page0.jpg', os.path.basename(response.pop('url')))
+        self.assertEquals(expected, response)
+
+    def test_get_image_by_page_number_missing(self):
+        self.api.get(
+            '/volumes/{}/pages/10000'.format(self.volume_id), status=404)
+
+    def test_set_series_cover_page(self):
+        self.api.put_json(
+            '/series/{}/cover_page'.format(self.series_id), {
+                'volume_id': self.volume_id,
+                'page_number': 5,
+            }
+        )
+        expected = self.expected_series
+        expected['cover_page']['page_number'] = 5
+        expected['cover_page']['volume_id'] = self.volume_id
+        response = self.api.get('/series/{}'.format(self.series_id)).json_body
+        for key in ('_rev',):
+            response.pop(key)
+        self.assertEquals(expected, response)
+
+    def test_set_series_cover_page_bad_volume(self):
+        self.api.put_json(
+            '/series/{}/cover_page'.format(self.series_id), {
+                'volume_id': 'missing',
+                'page_number': 5,
+            },
+            status=400,
+        )
+
+    def test_set_series_cover_page_bad_page_number(self):
+        self.api.put_json(
+            '/series/{}/cover_page'.format(self.series_id), {
+                'volume_id': 'missing',
+                'page_number': 100000,
+            },
+            status=400,
+        )
