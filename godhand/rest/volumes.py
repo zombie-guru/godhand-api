@@ -1,3 +1,5 @@
+import locale
+
 from pyramid.httpexceptions import HTTPNotFound
 import colander as co
 
@@ -48,7 +50,11 @@ def get_volume(request):
 
 class PutVolumeSchema(VolumePathSchema):
     volume_number = co.SchemaNode(
-        co.Integer(), validator=co.Range(min=0), missing=None)
+        co.Integer(), validator=co.Range(min=0), missing=co.drop)
+    language = co.SchemaNode(
+        co.String(), missing=co.drop,
+        validator=co.OneOf(set(locale.locale_alias.keys()))
+    )
 
 
 @volume.put(
@@ -63,7 +69,9 @@ def update_volume_meta(request):
     if volume is None:
         raise HTTPNotFound()
     for key in ('volume_number', 'language'):
-        value = request.validated[key]
-        if value:
-            volume[key] = value
+        try:
+            value = request.validated[key]
+        except KeyError:
+            continue
+        volume[key] = value
     volume.store(request.registry['godhand:db'])

@@ -134,6 +134,7 @@ class TestSingleSeries(SingleSeriesTest):
                 '@class': 'Volume',
                 '_id': volume_id,
                 'volume_number': 7,
+                'language': None,
                 'filename': 'volume-007' + cls.ext,
             }
             response = self.api.get('/volumes/{}'.format(volume_id)).json_body
@@ -271,3 +272,19 @@ class TestSingleVolumeInSeries(SingleVolumeInSeriesTest):
         expected = {'items': []}
         response = self.api.get('/series', params={'name': 'derp'}).json_body
         self.assertEquals(expected, response)
+
+    def test_update_volume_language(self):
+        self.api.put_json('/volumes/{}'.format(self.volume_id), {
+            'language': 'en',
+        })
+        response = self.api.get('/volumes/{}'.format(self.volume_id)).json_body
+        self.assertEquals(response['language'], 'en')
+        self.assertEquals(response['volume_number'], 7)
+
+    def test_update_volume_number(self):
+        self.api.put_json('/volumes/{}'.format(self.volume_id), {
+            'volume_number': 10,
+        })
+        response = self.api.get('/volumes/{}'.format(self.volume_id)).json_body
+        self.assertEquals(response['language'], None)
+        self.assertEquals(response['volume_number'], 10)
