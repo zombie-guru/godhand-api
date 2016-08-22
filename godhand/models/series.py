@@ -1,3 +1,6 @@
+from datetime import datetime
+
+from couchdb.mapping import DateTimeField
 from couchdb.mapping import Document
 from couchdb.mapping import DictField
 from couchdb.mapping import IntegerField
@@ -5,6 +8,7 @@ from couchdb.mapping import ListField
 from couchdb.mapping import Mapping
 from couchdb.mapping import TextField
 from couchdb.mapping import ViewField
+import couchdb.http
 
 
 class Series(Document):
@@ -75,9 +79,49 @@ class Series(Document):
 
 class SeriesReaderProgress(Document):
     class_ = TextField('@class', default='SeriesReaderProgress')
-    volume_number = IntegerField()
+    user_id = TextField()
+    series_id = TextField()
+    volume_id = TextField()
     page_number = IntegerField()
+    last_updated = DateTimeField()
 
     @classmethod
-    def create_key(cls, user_id, series_id):
-        return 'progress:{}:{}'.format(user_id, series_id)
+    def save_for_user(cls, db, user_id, series_id, volume_id, page_number):
+        doc = cls(
+            _id='progress:{}:{}:{}'.format(user_id, series_id, volume_id),
+            user_id=user_id,
+            series_id=series_id,
+            volume_id=volume_id,
+            page_number=page_number,
+            last_updated=datetime.utcnow(),
+        )
+        doc.store(db)
+        cls.by_series.sync(db)
+
+    @classmethod
+    def retrieve_for_user(cls, db, user_id, series_id, limit=50):
+        try:
+            return cls.by_series(
+                db,
+                # startkey=[user_id, series_id, {}],
+                # endkey=[user_id, series_id, None],
+                descending=True,
+                limit=limit,
+            ).rows
+        except couchdb.http.ResourceNotFound:
+            return []
+
+    by_series = ViewField('progress_by_series', '''
+    function(doc) {
+        if (doc['@class'] === 'SeriesReaderProgress') {
+            emit(
+                [
+                    doc.user_id,
+                    doc.series_id,
+                    doc.last_updated
+                ],
+                doc
+            );
+        }
+    }
+    ''')

@@ -24,11 +24,11 @@ class TestEmpty(WriteUserLoggedInTest):
 
     def test_update_progress_missing(self):
         self.api.put_json(
-            '/series/missing/reader-progress',
-            {'volume_number': 432, 'page_number': 7}, status=404)
+            '/volumes/missing/reader_progress',
+            {'page_number': 7}, status=404)
 
     def test_get_progress_missing(self):
-        self.api.get('/series/missing/reader-progress', status=404)
+        self.api.get('/series/missing/reader_progress', status=404)
 
     def test_create_series(self):
         response = self.api.post_json(
@@ -171,25 +171,6 @@ class TestSingleSeries(SingleSeriesTest):
                 for page in pages:
                     page.pop(key)
             self.assertEquals(expected, pages)
-
-    def test_get_and_store_series_progress(self):
-        expected = {'volume_number': 0, 'page_number': 0}
-        response = self.api.get(
-            '/series/{}/reader-progress'.format(self.series_id)).json_body
-        for key in ('_id', '_rev', '@class'):
-            response.pop(key, None)
-        self.assertEquals(expected, response)
-
-        self.api.put_json(
-            '/series/{}/reader-progress'.format(self.series_id),
-            {'volume_number': 432, 'page_number': 7})
-
-        expected = {'volume_number': 432, 'page_number': 7}
-        response = self.api.get(
-            '/series/{}/reader-progress'.format(self.series_id)).json_body
-        for key in ('_id', '_rev', '@class'):
-            response.pop(key, None)
-        self.assertEquals(expected, response)
 
 
 class SingleVolumeInSeriesTest(SingleSeriesTest):
@@ -368,3 +349,26 @@ class TestSingleVolumeInSeries(SingleVolumeInSeriesTest):
             },
             status=400,
         )
+
+    def test_get_and_store_series_progress(self):
+        expected = {'items': []}
+        response = self.api.get(
+            '/series/{}/reader_progress'.format(self.series_id)).json_body
+        self.assertEquals(expected, response)
+
+        self.api.put_json(
+            '/volumes/{}/reader_progress'.format(self.volume_id),
+            {'page_number': 7})
+
+        expected = {'items': [{
+            'series_id': self.series_id,
+            'volume_id': self.volume_id,
+            'user_id': 'write@company.com',
+            'page_number': 7,
+        }]}
+        response = self.api.get(
+            '/series/{}/reader_progress'.format(self.series_id)).json_body
+        for key in ('_id', '_rev', '@class', 'last_updated'):
+            for item in response['items']:
+                item.pop(key)
+        self.assertEquals(expected, response)

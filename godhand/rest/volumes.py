@@ -4,6 +4,7 @@ from pyramid.httpexceptions import HTTPNotFound
 import colander as co
 
 from ..models.volume import Volume
+from ..models.series import SeriesReaderProgress
 from .utils import GodhandService
 
 
@@ -27,6 +28,10 @@ volume = GodhandService(
 volume_page = GodhandService(
     name='volume_page',
     path='/volumes/{volume}/pages/{page}'
+)
+volume_reader_progress = GodhandService(
+    name='volume_reader_progress',
+    path='/volumes/{volume}/reader_progress'
 )
 
 
@@ -106,3 +111,25 @@ def get_volume_page(request):
         'width': page['width'],
         'height': page['height'],
     }
+
+
+class StoreReaderProgressSchema(VolumePathSchema):
+    page_number = co.SchemaNode(co.Integer(), validator=co.Range(min=0))
+
+
+@volume_reader_progress.put(
+    permission='view',
+    schema=StoreReaderProgressSchema,
+)
+def store_reader_progress(request):
+    v = request.validated
+    volume = Volume.load(request.registry['godhand:db'], v['volume'])
+    if volume is None:
+        raise HTTPNotFound('Invalid volume id.')
+    SeriesReaderProgress.save_for_user(
+        db=request.registry['godhand:db'],
+        series_id=volume.series_id,
+        user_id=request.authenticated_userid,
+        volume_id=volume.id,
+        page_number=v['page_number'],
+    )
