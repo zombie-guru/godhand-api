@@ -1,7 +1,7 @@
 from pyramid.httpexceptions import HTTPNotFound
 import colander as co
-import couchdb.http
 
+from ..models.volume import Volume
 from .utils import GodhandService
 
 
@@ -37,16 +37,13 @@ def get_volume(request):
         }
 
     """
-    volume_id = request.validated['volume']
-    db = request.registry['godhand:db']
-    try:
-        doc = db[volume_id]
-    except couchdb.http.ResourceNotFound:
-        raise HTTPNotFound(volume_id)
-    else:
-        for page in doc['pages']:
-            page['url'] = request.static_url(page['path'])
-        return dict(doc.items())
+    volume = Volume.load(
+        request.registry['godhand:db'], request.validated['volume'])
+    if volume is None:
+        raise HTTPNotFound()
+    for page in volume['pages']:
+        page['url'] = request.static_url(page['path'])
+    return dict(volume.items())
 
 
 class PutVolumeSchema(VolumePathSchema):
@@ -61,16 +58,12 @@ class PutVolumeSchema(VolumePathSchema):
 def update_volume_meta(request):
     """ Update volume metadata.
     """
-    v = request.validated
-    volume_id = v['volume']
-    db = request.registry['godhand:db']
-    try:
-        doc = db[volume_id]
-    except couchdb.http.ResourceNotFound:
-        raise HTTPNotFound(volume_id)
-    for key in ('volume_number',):
-        try:
-            doc[key] = v[key]
-        except KeyError:
-            pass
-    db.save(doc)
+    volume = Volume.load(
+        request.registry['godhand:db'], request.validated['volume'])
+    if volume is None:
+        raise HTTPNotFound()
+    for key in ('volume_number', 'language'):
+        value = request.validated[key]
+        if value:
+            volume[key] = value
+    volume.store(request.registry['godhand:db'])
