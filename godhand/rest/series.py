@@ -24,7 +24,7 @@ series_volumes = GodhandService(
 series_volume = GodhandService(
     name='series_volume', path='/series/{series}/volumes/{n_volume}')
 series_reader_progress = GodhandService(
-    name='series_reader_progress', path='/series/{series}/reader-progress')
+    name='series_reader_progress', path='/series/{series}/reader_progress')
 
 
 def get_doc_from_request(request):
@@ -192,35 +192,15 @@ def set_series_cover_page(request):
     series.store(db)
 
 
-class StoreReaderProgressSchema(SeriesPathSchema):
-    volume_number = co.SchemaNode(co.Integer(), validator=co.Range(min=0))
-    page_number = co.SchemaNode(co.Integer(), validator=co.Range(min=0))
-
-
-@series_reader_progress.put(
-    schema=StoreReaderProgressSchema,
-    permission='view',
-)
-def store_reader_progress(request):
-    get_doc_from_request(request)
-    v = request.validated
-    key = SeriesReaderProgress.create_key(
-        request.authenticated_userid, v['series'])
-    progress = SeriesReaderProgress(
-        volume_number=v['volume_number'], page_number=v['page_number'], id=key)
-    progress.store(request.registry['godhand:db'])
-
-
 @series_reader_progress.get(
     schema=SeriesPathSchema,
     permission='view',
 )
 def get_reader_progress(request):
     get_doc_from_request(request)
-    v = request.validated
-    key = SeriesReaderProgress.create_key(
-        request.authenticated_userid, v['series'])
-    p = SeriesReaderProgress.load(request.registry['godhand:db'], key)
-    if p:
-        return dict(p.items())
-    return {'volume_number': 0, 'page_number': 0}
+    items = SeriesReaderProgress.retrieve_for_user(
+        db=request.registry['godhand:db'],
+        user_id=request.authenticated_userid,
+        series_id=request.validated['series'],
+    )
+    return {'items': [dict(x.items()) for x in items]}
