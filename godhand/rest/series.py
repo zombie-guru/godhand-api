@@ -9,11 +9,18 @@ from ..models import Volume
 from .utils import GodhandService
 
 
+class SeriesVolumePathSchema(co.MappingSchema):
+    series = co.SchemaNode(co.String(), location='path')
+    n_volume = co.SchemaNode(co.Integer(), location='path')
+
+
 series_collection = GodhandService(
     name='series_collection', path='/series')
 series = GodhandService(name='series', path='/series/{series}')
 series_volumes = GodhandService(
     name='series_volumes', path='/series/{series}/volumes')
+series_volume = GodhandService(
+    name='series_volume', path='/series/{series}/volumes/{n_volume}')
 series_reader_progress = GodhandService(
     name='series_reader_progress', path='/series/{series}/reader-progress')
 
@@ -123,13 +130,33 @@ def upload_volume(request):
             books_path=request.registry['godhand:books_path'],
             filename=value.filename,
             fd=value.file,
+            series_id=doc.id,
         )
         volume.store(db)
         doc.add_volume(volume)
         volume_ids.append(volume.id)
     doc.store(db)
     Series.by_attribute.sync(request.registry['godhand:db'])
+    Volume.by_series.sync(request.registry['godhand:db'])
     return {'volumes': volume_ids}
+
+
+@series_volume.get(
+    schema=SeriesVolumePathSchema,
+)
+def get_series_volume(request):
+    """ Get a series volume by index.
+    """
+    v = request.validated
+    try:
+        volume = Volume.get_series_volume(
+            request.registry['godhand:db'], v['series'], v['n_volume'])
+    except IndexError:
+        raise HTTPNotFound()
+    result = dict(volume.items())
+    for page in result['pages']:
+        page['url'] = request.static_url(page['path'])
+    return result
 
 
 class StoreReaderProgressSchema(SeriesPathSchema):

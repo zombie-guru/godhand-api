@@ -135,6 +135,7 @@ class TestSingleSeries(SingleSeriesTest):
                 '_id': volume_id,
                 'volume_number': 7,
                 'filename': 'volume-007' + cls.ext,
+                'series_id': self.series_id,
             }
             response = self.api.get('/volumes/{}'.format(volume_id)).json_body
             response.pop('_rev')
@@ -271,6 +272,24 @@ class TestSingleVolumeInSeries(SingleVolumeInSeriesTest):
         expected = {'items': []}
         response = self.api.get('/series', params={'name': 'derp'}).json_body
         self.assertEquals(expected, response)
+
+    def test_get_volume_by_index(self):
+        expected = {
+            '@class': 'Volume',
+            '_id': self.volume_id,
+            'filename': 'volume-007.cbt',
+            'series_id': self.series_id,
+            'volume_number': 7,
+        }
+        response = self.api.get(
+            '/series/{}/volumes/0'.format(self.series_id)).json_body
+        for key in ('_rev', 'pages'):
+            response.pop(key)
+        self.assertEquals(expected, response)
+
+    def test_get_volume_by_index_missing(self):
+        self.api.get(
+            '/series/{}/volumes/1'.format(self.series_id), status=404)
 
     def test_get_image_by_page_number(self):
         expected = {
