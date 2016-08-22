@@ -9,6 +9,10 @@ class VolumePathSchema(co.MappingSchema):
     volume = co.SchemaNode(co.String(), location='path')
 
 
+class VolumePagePathSchema(VolumePathSchema):
+    page = co.SchemaNode(co.Integer(), location='path')
+
+
 volumes = GodhandService(
     name='volumes',
     path='/volumes',
@@ -17,6 +21,10 @@ volume = GodhandService(
     name='volume',
     path='/volumes/{volume}',
     schema=VolumePathSchema,
+)
+volume_page = GodhandService(
+    name='volume_page',
+    path='/volumes/{volume}/pages/{page}'
 )
 
 
@@ -74,3 +82,28 @@ def update_volume_meta(request):
         except KeyError:
             pass
     db.save(doc)
+
+
+@volume_page.get(
+    permission='view',
+    schema=VolumePagePathSchema,
+)
+def get_volume_page(request):
+    """ Get a volume page.
+    """
+    volume_id = request.validated['volume']
+    db = request.registry['godhand:db']
+    try:
+        doc = db[volume_id]
+    except couchdb.http.ResourceNotFound:
+        raise HTTPNotFound(volume_id)
+    try:
+        page = doc['pages'][request.validated['page']]
+    except IndexError:
+        raise HTTPNotFound('Page does not exist.')
+    return {
+        'url': request.static_url(page['path']),
+        'orientation': page['orientation'],
+        'width': page['width'],
+        'height': page['height'],
+    }

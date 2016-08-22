@@ -271,3 +271,18 @@ class TestSingleVolumeInSeries(SingleVolumeInSeriesTest):
         expected = {'items': []}
         response = self.api.get('/series', params={'name': 'derp'}).json_body
         self.assertEquals(expected, response)
+
+    def test_get_image_by_page_number(self):
+        expected = {
+            'height': 128,
+            'width': 128,
+            'orientation': 'horizontal',
+        }
+        response = self.api.get(
+            '/volumes/{}/pages/0'.format(self.volume_id)).json_body
+        self.assertEquals('page0.jpg', os.path.basename(response.pop('url')))
+        self.assertEquals(expected, response)
+
+    def test_get_image_by_page_number_missing(self):
+        self.api.get(
+            '/volumes/{}/pages/10000'.format(self.volume_id), status=404)
