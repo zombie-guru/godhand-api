@@ -4,8 +4,11 @@ from cornice import Service
 from pyramid.security import Allow
 from pyramid.security import Deny
 from pyramid.security import Everyone
+import colander as co
 
 from godhand.models.auth import User
+from godhand.models.series import Series
+from godhand.models.volume import Volume
 
 
 def groupfinder(userid, request):
@@ -29,3 +32,17 @@ def default_acl(request):
 
 
 GodhandService = partial(Service, acl=default_acl, permission='view')
+
+
+class ValidatedSeries(co.String):
+    def deserialize(self, node, cstruct):
+        appstruct = super(ValidatedSeries, self).deserialize(node, cstruct)
+        db = node.bindings['request'].registry['godhand:db']
+        return Series.load(db, appstruct)
+
+
+class ValidatedVolume(co.String):
+    def deserialize(self, node, cstruct):
+        appstruct = super(ValidatedVolume, self).deserialize(node, cstruct)
+        db = node.bindings['request'].registry['godhand:db']
+        return Volume.load(db, appstruct)

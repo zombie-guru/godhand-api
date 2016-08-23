@@ -3,13 +3,14 @@ import locale
 from pyramid.httpexceptions import HTTPNotFound
 import colander as co
 
-from ..models.volume import Volume
 from ..models.series import SeriesReaderProgress
 from .utils import GodhandService
+from .utils import ValidatedVolume
 
 
 class VolumePathSchema(co.MappingSchema):
-    volume = co.SchemaNode(co.String(), location='path')
+    volume = co.SchemaNode(
+        ValidatedVolume(), location='path', validator=co.NoneOf([None]))
 
 
 class VolumePagePathSchema(VolumePathSchema):
@@ -52,10 +53,7 @@ def get_volume(request):
         }
 
     """
-    volume = Volume.load(
-        request.registry['godhand:db'], request.validated['volume'])
-    if volume is None:
-        raise HTTPNotFound()
+    volume = request.validated['volume']
     for page in volume['pages']:
         page['url'] = request.static_url(page['path'])
     return dict(volume.items())
@@ -77,10 +75,7 @@ class PutVolumeSchema(VolumePathSchema):
 def update_volume_meta(request):
     """ Update volume metadata.
     """
-    volume = Volume.load(
-        request.registry['godhand:db'], request.validated['volume'])
-    if volume is None:
-        raise HTTPNotFound()
+    volume = request.validated['volume']
     for key in ('volume_number', 'language'):
         try:
             value = request.validated[key]
@@ -97,10 +92,7 @@ def update_volume_meta(request):
 def get_volume_page(request):
     """ Get a volume page.
     """
-    volume = Volume.load(
-        request.registry['godhand:db'], request.validated['volume'])
-    if volume is None:
-        raise HTTPNotFound()
+    volume = request.validated['volume']
     try:
         page = volume.pages[request.validated['page']]
     except IndexError:
@@ -123,13 +115,10 @@ class StoreReaderProgressSchema(VolumePathSchema):
 )
 def store_reader_progress(request):
     v = request.validated
-    volume = Volume.load(request.registry['godhand:db'], v['volume'])
-    if volume is None:
-        raise HTTPNotFound('Invalid volume id.')
     SeriesReaderProgress.save_for_user(
         db=request.registry['godhand:db'],
-        series_id=volume.series_id,
+        series_id=v['volume'].series_id,
         user_id=request.authenticated_userid,
-        volume_id=volume.id,
+        volume_id=v['volume'].id,
         page_number=v['page_number'],
     )

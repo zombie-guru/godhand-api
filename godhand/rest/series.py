@@ -1,16 +1,20 @@
 from pyramid.httpexceptions import HTTPBadRequest
 from pyramid.httpexceptions import HTTPNotFound
 import colander as co
-import couchdb.http
 
 from ..models import Series
 from ..models import SeriesReaderProgress
 from ..models import Volume
 from .utils import GodhandService
+from .utils import ValidatedSeries
 
 
-class SeriesVolumePathSchema(co.MappingSchema):
-    series = co.SchemaNode(co.String(), location='path')
+class SeriesPathSchema(co.MappingSchema):
+    series = co.SchemaNode(
+        ValidatedSeries(), location='path', validator=co.NoneOf([None]),)
+
+
+class SeriesVolumePathSchema(SeriesPathSchema):
     n_volume = co.SchemaNode(co.Integer(), location='path')
 
 
@@ -25,19 +29,6 @@ series_volume = GodhandService(
     name='series_volume', path='/series/{series}/volumes/{n_volume}')
 series_reader_progress = GodhandService(
     name='series_reader_progress', path='/series/{series}/reader_progress')
-
-
-def get_doc_from_request(request):
-    db = request.registry['godhand:db']
-    v = request.validated
-    try:
-        doc = Series.load(db, v['series'])
-    except couchdb.http.ResourceNotFound:
-        raise HTTPNotFound(v['series'])
-    else:
-        if doc is None:
-            raise HTTPNotFound(v['series'])
-    return doc
 
 
 class GetSeriesCollectionSchema(co.MappingSchema):
@@ -104,15 +95,11 @@ def create_series(request):
     }
 
 
-class SeriesPathSchema(co.MappingSchema):
-    series = co.SchemaNode(co.String(), location='path')
-
-
 @series.get(schema=SeriesPathSchema, permission='view')
 def get_series(request):
     """ Get a series by key.
     """
-    doc = get_doc_from_request(request)
+    doc = request.validated['series']
     return dict(doc.items())
 
 
@@ -124,7 +111,7 @@ def get_series(request):
 def upload_volume(request):
     """ Create volume and return unique ids.
     """
-    doc = get_doc_from_request(request)
+    doc = request.validated['series']
     db = request.registry['godhand:db']
     volume_ids = []
     for key, value in request.POST.items():
@@ -153,7 +140,7 @@ def get_series_volume(request):
     v = request.validated
     try:
         volume = Volume.get_series_volume(
-            request.registry['godhand:db'], v['series'], v['n_volume'])
+            request.registry['godhand:db'], v['series'].id, v['n_volume'])
     except IndexError:
         raise HTTPNotFound()
     result = dict(volume.items())
@@ -175,9 +162,7 @@ class SetSeriesCoverPageSchema(SeriesPathSchema):
 def set_series_cover_page(request):
     db = request.registry['godhand:db']
     v = request.validated
-    series = Series.load(db, v['series'])
-    if series is None:
-        raise HTTPBadRequest('Invalid series.')
+    series = v['series']
     volume = Volume.load(db, v['volume_id'])
     if volume is None:
         raise HTTPBadRequest('Invalid volume.')
@@ -197,10 +182,9 @@ def set_series_cover_page(request):
     permission='view',
 )
 def get_reader_progress(request):
-    get_doc_from_request(request)
     items = SeriesReaderProgress.retrieve_for_user(
         db=request.registry['godhand:db'],
         user_id=request.authenticated_userid,
-        series_id=request.validated['series'],
+        series_id=request.validated['series'].id,
     )
     return {'items': [dict(x.items()) for x in items]}
