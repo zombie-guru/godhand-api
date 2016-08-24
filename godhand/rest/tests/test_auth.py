@@ -129,3 +129,34 @@ class TestSingleUserLoggedIn(RootLoggedInTest):
     def test_permission_tests(self):
         self.api.get('/permissions/view/test')
         self.api.get('/permissions/write/test', status=403)
+
+
+class TestAuthDisabled(ApiTest):
+    disable_auth = True
+
+    def test_admin_only_views(self):
+        self.api.put_json('/users/user%40company.com', {'groups': ['admin']})
+        self.api.get('/users/user%40company.com')
+
+    def test_write_only_views(self):
+        self.api.post_json(
+            '/series', {
+                'name': 'Berserk',
+                'description': 'My Description',
+                'genres': ['action', 'meme'],
+                'dbpedia_uri': None,
+                'author': None,
+                'magazine': None,
+                'number_of_volumes': None,
+            })
+        with tmp_cbt(['page{:x}.jpg'.format(x) for x in range(15)]) as f:
+            self.api.post(
+                '/series/missing/volumes',
+                upload_files=[('input', 'volume-007.cbt', f.read())],
+                content_type='multipart/form-data',
+                status=400
+            )
+
+    def test_permission_tests(self):
+        self.api.get('/permissions/view/test')
+        self.api.get('/permissions/write/test')

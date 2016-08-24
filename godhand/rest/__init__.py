@@ -26,7 +26,8 @@ def main(global_config, **settings):
     )
     config = Configurator(settings=settings)
     setup_db(config, cfg.couchdb_url, cfg.root_email)
-    setup_acl(config, cfg.auth_secret)
+    if not cfg.disable_auth:
+        setup_acl(config, cfg.auth_secret)
     config.include('cornice')
     config.scan('.', ignore=[re.compile('^.*tests$').match])
     config.registry['godhand:cfg'] = cfg

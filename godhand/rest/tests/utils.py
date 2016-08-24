@@ -32,11 +32,14 @@ class ApiTest(unittest.TestCase):
     client_secret = 'my-client-secret'
     couchdb_url = 'http://couchdb:mypassword@{}:8001'.format(get_docker_ip())
 
+    disable_auth = False
+
     def setUp(self):
         from godhand.rest import main
         self.api = TestApp(main(
             {},
             couchdb_url=self.couchdb_url,
+            disable_auth=self.disable_auth,
             google_client_appname=self.client_appname,
             google_client_id=self.client_id,
             google_client_secret=self.client_secret,

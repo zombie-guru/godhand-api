@@ -21,7 +21,8 @@ class GodhandConfiguration(object):
 
     def __init__(self, couchdb_url,
                  google_client_appname, google_client_id, google_client_secret,
-                 auth_secret, root_email):
+                 auth_secret, root_email, disable_auth):
+        self.disable_auth = disable_auth
         self.couchdb_url = couchdb_url
         self.auth_secret = auth_secret
         self.google_client_appname = google_client_appname
@@ -44,6 +45,7 @@ def is_path(node, appstruct):
 
 class GodhandConfigurationSchema(co.MappingSchema):
     couchdb_url = co.SchemaNode(co.String(), validator=co.url)
+    disable_auth = co.SchemaNode(co.Boolean(), missing=False)
     google_client_appname = co.SchemaNode(co.String(), missing=None)
     google_client_id = co.SchemaNode(co.String(), missing=None)
     google_client_secret = co.SchemaNode(co.String(), missing=None)
