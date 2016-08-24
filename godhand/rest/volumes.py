@@ -32,7 +32,7 @@ volume_page = GodhandService(
 )
 volume_file = GodhandService(
     name='volume_file',
-    path='/volumes/{volume}/files/{filename}'
+    path='/volumes/{volume}/files/{filename:.+}'
 )
 volume_reader_progress = GodhandService(
     name='volume_reader_progress',

@@ -141,7 +141,7 @@ class CbtFile(object):
         heights = (128, 128, 128)
         orientation = ('horizontal', 'horizontal', 'vertical')
         return [{
-            'filename': 'page-{:x}.png'.format(n),
+            'filename': 'base/path/page-{:x}.png'.format(n),
             'width': widths[n % 3],
             'height': heights[n % 3],
             'orientation': orientation[n % 3],
