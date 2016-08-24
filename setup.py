@@ -33,7 +33,6 @@ setup(
     },
     extras_require={
         'tests': [
-            'fixtures',
             'mock',
             'webtest',
         ],

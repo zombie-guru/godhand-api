@@ -1,5 +1,3 @@
-from shutil import rmtree
-from tempfile import mkdtemp
 import re
 
 from PIL import Image
@@ -13,26 +11,35 @@ from couchdb.mapping import ViewField
 
 from .. import bookextractor
 
-image_regex = re.compile('^.*\.(jpg|jpeg|gif|png|tiff)$', re.IGNORECASE)
-
 
 class Volume(Document):
     @classmethod
-    def from_archieve(cls, books_path, filename, fd, series_id):
-        basedir = mkdtemp(dir=books_path)
-        try:
-            ext = bookextractor.from_filename(filename)(fd, basedir)
-            pages = ext.iter_pages()
-            pages = filter(image_regex.match, pages)
-            return cls(
-                filename=filename,
-                volume_number=guess_volume_number(filename),
-                pages=[get_image_meta(page) for page in pages],
-                series_id=series_id,
-            )
-        except Exception:
-            rmtree(basedir)
-            raise
+    def from_archieve(cls, db, filename, fd, series_id):
+        # TODO: try except block in case of failure
+        ext = bookextractor.from_filename(filename)(fd)
+        doc = cls(
+            filename=filename,
+            volume_number=guess_volume_number(filename),
+            pages=[],
+            series_id=series_id,
+        )
+        doc = doc.store(db)
+
+        _doc = db[doc.id]
+        pages = []
+        for relpath, path in ext.iter_pages():
+            pages.append(get_image_meta(path, relpath))
+            with open(path, 'rb') as f:
+                db.put_attachment(_doc, f, filename=relpath)
+            attachment = db.get_attachment(doc.id, relpath)
+            assert attachment
+
+        pages.sort(key=lambda x: x['filename'])
+
+        _doc = db[doc.id]
+        _doc['pages'] = pages
+        db.save(_doc)
+        return doc
 
     @classmethod
     def get_series_volume(cls, db, series_id, index):
@@ -55,7 +62,7 @@ class Volume(Document):
     language = TextField()
     series_id = TextField()
     pages = ListField(DictField(Mapping.build(
-        path=TextField(),
+        filename=TextField(),
         width=IntegerField(),
         height=IntegerField(),
         orientation=TextField(),
@@ -77,11 +84,11 @@ def guess_volume_number(filename):
         return None
 
 
-def get_image_meta(filename):
+def get_image_meta(filename, relpath):
     with Image.open(filename) as im:
         width, height = im.size
         return {
-            'path': filename,
+            'filename': relpath,
             'width': width,
             'height': height,
             'orientation': 'vertical' if width < height else 'horizontal',

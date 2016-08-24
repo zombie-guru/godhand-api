@@ -116,12 +116,11 @@ def upload_volume(request):
     volume_ids = []
     for key, value in request.POST.items():
         volume = Volume.from_archieve(
-            books_path=request.registry['godhand:books_path'],
+            db,
             filename=value.filename,
             fd=value.file,
             series_id=doc.id,
         )
-        volume.store(db)
         doc.add_volume(volume)
         volume_ids.append(volume.id)
     doc.store(db)
@@ -145,7 +144,8 @@ def get_series_volume(request):
         raise HTTPNotFound()
     result = dict(volume.items())
     for page in result['pages']:
-        page['url'] = request.static_url(page['path'])
+        page['url'] = request.route_url(
+            'volume_file', volume=volume.id, filename=page['filename'])
     return result
 
 

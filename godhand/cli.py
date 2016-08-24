@@ -2,7 +2,6 @@ from itertools import islice
 import argparse
 import json
 import logging
-import os
 import sys
 
 import couchdb.client
@@ -48,9 +47,7 @@ def dbpedia_dump():
 def upload(couchdb_url=None, lines=None):
     if lines is None:
         lines = sys.stdin
-    cfg = GodhandConfiguration.from_env(
-        books_path=os.path.abspath(os.path.curdir),
-        couchdb_url=couchdb_url)
+    cfg = GodhandConfiguration.from_env(couchdb_url=couchdb_url)
     db = get_db(cfg)
     docs = iterdocs(lines)
     while True:

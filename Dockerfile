@@ -9,9 +9,7 @@ RUN apt-get update && \
   rm -rf /var/lib/apt/lists/* && \
   pip3 install godhand-*-py3-*.whl && \
   pip3 install -r requirements.txt && \
-  mkdir -p var/books && \
   rm godhand-*-py3-*.whl
-ENV GODHAND_BOOKS_PATH /target/var/books
 VOLUME /target/var
 EXPOSE 7764
 CMD ["pserve", "app.ini"]

@@ -10,7 +10,6 @@ import unittest
 import zipfile
 
 from PIL import Image
-from fixtures import TempDir
 from webtest import TestApp
 import couchdb.client
 import couchdb.http
@@ -35,12 +34,8 @@ class ApiTest(unittest.TestCase):
 
     def setUp(self):
         from godhand.rest import main
-        base_path = self.use_fixture(TempDir()).path
-        self.books_path = books_path = os.path.join(base_path, 'books')
-        os.makedirs(books_path)
         self.api = TestApp(main(
             {},
-            books_path=books_path,
             couchdb_url=self.couchdb_url,
             google_client_appname=self.client_appname,
             google_client_id=self.client_id,
@@ -146,7 +141,7 @@ class CbtFile(object):
         heights = (128, 128, 128)
         orientation = ('horizontal', 'horizontal', 'vertical')
         return [{
-            'filename': 'page-{:x}.png'.format(n),
+            'filename': 'base/path/page-{:x}.png'.format(n),
             'width': widths[n % 3],
             'height': heights[n % 3],
             'orientation': orientation[n % 3],

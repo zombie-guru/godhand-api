@@ -149,6 +149,7 @@ class TestSingleSeries(SingleSeriesTest):
             response = self.api.get('/volumes/{}'.format(volume_id)).json_body
             response.pop('_rev')
             pages = response.pop('pages')
+            response.pop('_attachments')
             self.assertEquals(expected, response)
             # validate pages
             urls = [x.pop('url') for x in pages]
@@ -167,7 +168,7 @@ class TestSingleSeries(SingleSeriesTest):
                 'height': page['height'],
                 'orientation': page['orientation'],
             } for page in cbt.pages]
-            for key in ('path',):
+            for key in ('filename',):
                 for page in pages:
                     page.pop(key)
             self.assertEquals(expected, pages)
@@ -294,7 +295,7 @@ class TestSingleVolumeInSeries(SingleVolumeInSeriesTest):
         }
         response = self.api.get(
             '/series/{}/volumes/0'.format(self.series_id)).json_body
-        for key in ('_rev', 'pages'):
+        for key in ('_rev', 'pages', '_attachments'):
             response.pop(key)
         self.assertEquals(expected, response)
 

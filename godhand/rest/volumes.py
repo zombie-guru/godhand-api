@@ -30,6 +30,10 @@ volume_page = GodhandService(
     name='volume_page',
     path='/volumes/{volume}/pages/{page}'
 )
+volume_file = GodhandService(
+    name='volume_file',
+    path='/volumes/{volume}/files/{filename:.+}'
+)
 volume_reader_progress = GodhandService(
     name='volume_reader_progress',
     path='/volumes/{volume}/reader_progress'
@@ -55,7 +59,8 @@ def get_volume(request):
     """
     volume = request.validated['volume']
     for page in volume['pages']:
-        page['url'] = request.static_url(page['path'])
+        page['url'] = request.route_url(
+            'volume_file', volume=volume.id, filename=page['filename'])
     return dict(volume.items())
 
 
@@ -98,11 +103,35 @@ def get_volume_page(request):
     except IndexError:
         raise HTTPNotFound('Page does not exist.')
     return {
-        'url': request.static_url(page['path']),
+        'url': request.route_url(
+            'volume_file',
+            volume=volume.id,
+            filename=page['filename'],
+        ),
         'orientation': page['orientation'],
         'width': page['width'],
         'height': page['height'],
     }
+
+
+class VolumeFileSchema(VolumePathSchema):
+    filename = co.SchemaNode(co.String(), location='path')
+
+
+@volume_file.get(
+    permission='view',
+    schema=VolumeFileSchema,
+)
+def get_volume_file(request):
+    attachment = request.registry['godhand:db'].get_attachment(
+        request.validated['volume'].id,
+        request.validated['filename'],
+    )
+    if attachment is None:
+        raise HTTPNotFound()
+    response = request.response
+    response.body_file = attachment
+    return response
 
 
 class StoreReaderProgressSchema(VolumePathSchema):
