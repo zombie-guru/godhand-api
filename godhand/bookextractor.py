@@ -1,4 +1,6 @@
+from shutil import rmtree
 from tempfile import NamedTemporaryFile
+from tempfile import mkdtemp
 import os
 import re
 import subprocess
@@ -37,45 +39,49 @@ def filename_to_mimetype(filename):
 
 
 class BookExtractor(object):
-    def __init__(self, f, path):
+    def __init__(self, f):
         """ Create a BookExtractor object.
 
         :param f: File pointer to book.
         :param path: Path to directory to extract to.
         """
         self.f = f
-        self.path = path
 
-    def extract(self):
+    def extract(self, tmp):
         raise NotImplementedError()
 
     def iter_pages(self):
-        self.extract()
-        for root, dirs, files in os.walk(self.path):
-            dirs.sort()
-            files.sort()
-            # ignore dot files
-            files = filter(lambda x: not x.startswith('.'), files)
-            for page in files:
-                yield os.path.join(root, page)
+        tmp = mkdtemp()
+        try:
+            self.extract(tmp)
+            for root, dirs, files in os.walk(tmp):
+                dirs.sort()
+                files.sort()
+                # ignore dot files
+                files = filter(lambda x: not x.startswith('.'), files)
+                for page in files:
+                    page = os.path.join(root, page)
+                    yield os.path.relpath(page, tmp), page
+        finally:
+            rmtree(tmp)
 
 
 class CbtBookExtractor(BookExtractor):
-    def extract(self):
+    def extract(self, tmp):
         with tarfile.open(fileobj=self.f) as ar:
-            ar.extractall(self.path)
+            ar.extractall(tmp)
 
 
 class CbzBookExtractor(BookExtractor):
-    def extract(self):
+    def extract(self, tmp):
         with zipfile.ZipFile(self.f) as ar:
-            ar.extractall(self.path)
+            ar.extractall(tmp)
 
 
 class CbrBookExtractor(BookExtractor):
-    def extract(self):
+    def extract(self, tmp):
         with NamedTemporaryFile() as f:
             for line in self.f:
                 f.write(line)
             f.flush()
-            subprocess.check_call(['unrar', 'x', f.name, self.path])
+            subprocess.check_call(['unrar', 'x', f.name, tmp])
