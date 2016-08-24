@@ -1,4 +1,3 @@
-import os
 import re
 
 from pyramid.authentication import AuthTktAuthenticationPolicy
@@ -17,7 +16,6 @@ from .utils import groupfinder
 
 def main(global_config, **settings):
     cfg = GodhandConfiguration.from_env(
-        books_path=settings.get('books_path', None),
         couchdb_url=settings.get('couchdb_url', None),
         disable_auth=settings.get('disable_auth', None),
         google_client_id=settings.get('google_client_id'),
@@ -26,15 +24,12 @@ def main(global_config, **settings):
         auth_secret=settings.get('auth_secret'),
         root_email=settings.get('root_email'),
     )
-    books_path = os.path.abspath(cfg.books_path)
     config = Configurator(settings=settings)
     setup_db(config, cfg.couchdb_url, cfg.root_email)
     setup_acl(config, cfg.auth_secret)
     config.include('cornice')
     config.scan('.', ignore=[re.compile('^.*tests$').match])
-    config.registry['godhand:books_path'] = books_path
     config.registry['godhand:cfg'] = cfg
-    config.add_static_view('static', books_path)
     config.add_route(
         'google-oauth2', 'https://accounts.google.com/o/oauth2/v2/auth')
     return config.make_wsgi_app()

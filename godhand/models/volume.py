@@ -14,7 +14,7 @@ from .. import bookextractor
 
 class Volume(Document):
     @classmethod
-    def from_archieve(cls, db, books_path, filename, fd, series_id):
+    def from_archieve(cls, db, filename, fd, series_id):
         # TODO: try except block in case of failure
         ext = bookextractor.from_filename(filename)(fd)
         doc = cls(

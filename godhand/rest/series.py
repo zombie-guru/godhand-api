@@ -117,7 +117,6 @@ def upload_volume(request):
     for key, value in request.POST.items():
         volume = Volume.from_archieve(
             db,
-            books_path=request.registry['godhand:books_path'],
             filename=value.filename,
             fd=value.file,
             series_id=doc.id,
