@@ -17,6 +17,7 @@ deployment:
   hub:
     branch: master
     commands:
+      - pip install wheel
       - bin/inv build
       - docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
       - docker push zombieguru/godhand
