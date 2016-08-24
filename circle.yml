@@ -19,5 +19,5 @@ deployment:
     commands:
       - pip install wheel
       - bin/inv build
-      - docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
+      - docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD -e $DOCKER_EMAIL
       - docker push zombieguru/godhand
