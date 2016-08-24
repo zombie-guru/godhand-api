@@ -13,3 +13,10 @@ test:
   override:
     - bin/nosetests --with-xunit --xunit-file $CIRCLE_TEST_REPORTS/nosetests.xml godhand
     - bin/flake8
+deployment:
+  hub:
+    branch: master
+    commands:
+      - bin/inv build
+      - docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
+      - docker push zombieguru/godhand
