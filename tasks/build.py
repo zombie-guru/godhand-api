@@ -7,7 +7,10 @@ from invoke import run
 
 @task(name='clean')
 def build_clean(ctx):
-    rmtree('dist')
+    try:
+        rmtree('dist')
+    except FileNotFoundError:
+        pass
 
 
 @task(name='wheel')
