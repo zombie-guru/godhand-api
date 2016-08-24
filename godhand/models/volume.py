@@ -15,7 +15,6 @@ from .. import bookextractor
 class Volume(Document):
     @classmethod
     def from_archieve(cls, db, filename, fd, series_id):
-        # TODO: try except block in case of failure
         ext = bookextractor.from_filename(filename)(fd)
         doc = cls(
             filename=filename,
@@ -26,20 +25,24 @@ class Volume(Document):
         doc = doc.store(db)
 
         _doc = db[doc.id]
-        pages = []
-        for relpath, path in ext.iter_pages():
-            pages.append(get_image_meta(path, relpath))
-            with open(path, 'rb') as f:
-                db.put_attachment(_doc, f, filename=relpath)
-            attachment = db.get_attachment(doc.id, relpath)
-            assert attachment
+        try:
+            pages = []
+            for relpath, path in ext.iter_pages():
+                pages.append(get_image_meta(path, relpath))
+                with open(path, 'rb') as f:
+                    db.put_attachment(_doc, f, filename=relpath)
+                attachment = db.get_attachment(doc.id, relpath)
+                assert attachment
 
-        pages.sort(key=lambda x: x['filename'])
+            pages.sort(key=lambda x: x['filename'])
 
-        _doc = db[doc.id]
-        _doc['pages'] = pages
-        db.save(_doc)
-        return doc
+            _doc = db[doc.id]
+            _doc['pages'] = pages
+            db.save(_doc)
+            return doc
+        except Exception:
+            db.delete(doc.id)
+            raise
 
     @classmethod
     def get_series_volume(cls, db, series_id, index):
