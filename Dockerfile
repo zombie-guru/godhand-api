@@ -10,6 +10,5 @@ RUN apt-get update && \
   pip3 install godhand-*-py3-*.whl && \
   pip3 install -r requirements.txt && \
   rm godhand-*-py3-*.whl
-VOLUME /target/var
 EXPOSE 7764
 CMD ["pserve", "app.ini"]
