@@ -55,9 +55,6 @@ class BookExtractor(object):
         try:
             self.extract(tmp)
             for root, dirs, files in os.walk(tmp):
-                dirs.sort()
-                files.sort()
-                # ignore dot files
                 files = filter(lambda x: not x.startswith('.'), files)
                 for page in files:
                     page = os.path.join(root, page)

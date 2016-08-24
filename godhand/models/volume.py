@@ -34,6 +34,8 @@ class Volume(Document):
             attachment = db.get_attachment(doc.id, relpath)
             assert attachment
 
+        pages.sort(key=lambda x: x['filename'])
+
         _doc = db[doc.id]
         _doc['pages'] = pages
         db.save(_doc)
