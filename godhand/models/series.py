@@ -103,8 +103,8 @@ class SeriesReaderProgress(Document):
         try:
             return cls.by_series(
                 db,
-                # startkey=[user_id, series_id, {}],
-                # endkey=[user_id, series_id, None],
+                startkey=[user_id, series_id, {}],
+                endkey=[user_id, series_id, None],
                 descending=True,
                 limit=limit,
             ).rows
