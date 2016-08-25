@@ -350,19 +350,20 @@ class TestSingleVolumeInSeries(SingleVolumeInSeriesTest):
             '/series/{}/reader_progress'.format(self.series_id)).json_body
         self.assertEquals(expected, response)
 
-        self.api.put_json(
-            '/volumes/{}/reader_progress'.format(self.volume_id),
-            {'page_number': 7})
+        for n_page in range(10):
+            self.api.put_json(
+                '/volumes/{}/reader_progress'.format(self.volume_id),
+                {'page_number': n_page})
 
-        expected = {'items': [{
-            'series_id': self.series_id,
-            'volume_id': self.volume_id,
-            'user_id': 'write@company.com',
-            'page_number': 7,
-        }]}
-        response = self.api.get(
-            '/series/{}/reader_progress'.format(self.series_id)).json_body
-        for key in ('_id', '_rev', '@class', 'last_updated'):
-            for item in response['items']:
-                item.pop(key)
-        self.assertEquals(expected, response)
+            expected = {'items': [{
+                'series_id': self.series_id,
+                'volume_id': self.volume_id,
+                'user_id': 'write@company.com',
+                'page_number': n_page,
+            }]}
+            response = self.api.get(
+                '/series/{}/reader_progress'.format(self.series_id)).json_body
+            for key in ('_id', '_rev', '@class', 'last_updated'):
+                for item in response['items']:
+                    item.pop(key)
+            self.assertEquals(expected, response)

@@ -87,14 +87,15 @@ class SeriesReaderProgress(Document):
 
     @classmethod
     def save_for_user(cls, db, user_id, series_id, volume_id, page_number):
-        doc = cls(
-            _id='progress:{}:{}:{}'.format(user_id, series_id, volume_id),
-            user_id=user_id,
-            series_id=series_id,
-            volume_id=volume_id,
-            page_number=page_number,
-            last_updated=datetime.utcnow(),
-        )
+        id = 'progress:{}:{}'.format(volume_id, user_id)
+        doc = cls.load(db, id)
+        if doc is None:
+            doc = cls(id=id)
+        doc.user_id = user_id
+        doc.series_id = series_id
+        doc.volume_id = volume_id
+        doc.page_number = page_number
+        doc.last_updated = datetime.utcnow()
         doc.store(db)
         cls.by_series.sync(db)
 
