@@ -90,10 +90,7 @@ def update_volume_meta(request):
     volume.store(request.registry['godhand:db'])
 
 
-@volume_page.get(
-    permission='view',
-    schema=VolumePagePathSchema,
-)
+@volume_page.get(permission='view', schema=VolumePagePathSchema)
 def get_volume_page(request):
     """ Get a volume page.
     """
@@ -102,16 +99,18 @@ def get_volume_page(request):
         page = volume.pages[request.validated['page']]
     except IndexError:
         raise HTTPNotFound('Page does not exist.')
-    return {
-        'url': request.route_url(
-            'volume_file',
-            volume=volume.id,
-            filename=page['filename'],
-        ),
-        'orientation': page['orientation'],
-        'width': page['width'],
-        'height': page['height'],
-    }
+
+    attachment = volume['_attachments'][page['filename']]
+    mimetype = attachment['content_type']
+
+    attachment = request.registry['godhand:db'].get_attachment(
+        volume.id, page['filename'])
+    if attachment is None:
+        raise HTTPNotFound()
+    response = request.response
+    response.body_file = attachment
+    response.content_type = mimetype
+    return response
 
 
 class VolumeFileSchema(VolumePathSchema):

@@ -1,14 +1,9 @@
-FROM ubuntu:16.04
+FROM alpine:3.4
 COPY dist/godhand-*-py3-*.whl app.ini requirements.txt /target/
 WORKDIR /target
-RUN apt-get update && \
-  apt-get install -y software-properties-common python-software-properties && \
-  apt-add-repository multiverse && \
-  apt-get update && \
-  apt-get install -y python3 python3-pip unrar && \
-  rm -rf /var/lib/apt/lists/* && \
-  pip3 install godhand-*-py3-*.whl && \
-  pip3 install -r requirements.txt && \
-  rm godhand-*-py3-*.whl
+RUN apk add --no-cache python3 unrar build-base python3-dev jpeg-dev zlib-dev && \
+  LIBRARY_PATH=/lib:/usr/lib pip3 install --no-cache-dir godhand-*-py3-*.whl && \
+  pip3 install --no-cache-dir -r requirements.txt && \
+  apk del build-base python3-dev
 EXPOSE 7764
 CMD ["pserve", "app.ini"]
