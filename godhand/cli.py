@@ -55,11 +55,6 @@ def upload(couchdb_url=None, lines=None):
         if len(batch) == 0:
             break
         db.update(batch)
-    LOG.info('syncing Series.search')
-    Series.search.sync(db)
-    LOG.info('syncing Series.search_by_attribute')
-    Series.search_by_attribute.sync(db)
-    LOG.info('syncing Series.by_attribute')
     Series.by_attribute.sync(db)
 
 
