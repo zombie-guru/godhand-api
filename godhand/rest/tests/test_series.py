@@ -51,7 +51,7 @@ class TestEmpty(WriteUserLoggedInTest):
             'name': 'Berserk',
             'description': 'My Description',
             'genres': ['action', 'meme'],
-            'volumes': [],
+            'uploaded_volumes': 0,
             'author': None,
             'cover_page': {
                 'page_number': None,
@@ -90,7 +90,7 @@ class SingleSeriesTest(WriteUserLoggedInTest):
             'name': 'Berserk',
             'description': 'My Description',
             'genres': ['action', 'meme'],
-            'volumes': [],
+            'uploaded_volumes': 0,
             'author': None,
             'cover_page': {
                 'page_number': None,
@@ -194,12 +194,7 @@ class SingleVolumeInSeriesTest(SingleSeriesTest):
             'name': 'Berserk',
             'description': 'My Description',
             'genres': ['action', 'meme'],
-            'volumes': [
-                {
-                    'id': self.volume_id,
-                    'volume_number': 7,
-                }
-            ],
+            'uploaded_volumes': 1,
             'author': None,
             'cover_page': {
                 'page_number': None,

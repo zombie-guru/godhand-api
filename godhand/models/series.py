@@ -23,21 +23,18 @@ class Series(Document):
         volume_id=TextField(),
         page_number=IntegerField(),
     ))
-    volumes = ListField(DictField(Mapping.build(
-        id=TextField(),
-        volume_number=IntegerField(),
-    )))
+    uploaded_volumes = IntegerField(default=0)
 
     by_attribute = ViewField('by_attribute', '''
     function(doc) {
         if (doc['@class'] === 'Series') {
             var name = doc.name.toLowerCase();
             emit([null, 'name:' + name], doc);
-            emit([doc.volumes.length > 0, 'name:' + name], doc);
+            emit([doc.uploaded_volumes > 0, 'name:' + name], doc);
             doc.genres.map(function(genre) {
                 genre = genre.toLowerCase();
                 emit([null, 'genre:' + genre, name], doc);
-                emit([doc.volumes.length > 0, 'genre:' + genre, name], doc);
+                emit([doc.uploaded_volumes > 0, 'genre:' + genre, name], doc);
             })
         }
     }
@@ -71,10 +68,6 @@ class Series(Document):
             kws['startkey'].append('name:')
             kws['endkey'].append(u'name:\ufff0')
         return Series.by_attribute(db, **kws)
-
-    def add_volume(self, volume):
-        self.volumes.append(
-            {'id': volume.id, 'volume_number': volume.volume_number})
 
 
 class SeriesReaderProgress(Document):

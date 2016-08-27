@@ -121,7 +121,7 @@ def upload_volume(request):
             fd=value.file,
             series_id=doc.id,
         )
-        doc.add_volume(volume)
+        doc.uploaded_volumes += 1
         volume_ids.append(volume.id)
     doc.store(db)
     Series.by_attribute.sync(request.registry['godhand:db'])
