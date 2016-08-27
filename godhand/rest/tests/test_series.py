@@ -372,7 +372,7 @@ class TestSingleVolumeInSeries(SingleVolumeInSeriesTest):
             expected = {'items': [{
                 'series_id': self.series_id,
                 'volume_id': self.volume_id,
-                'user_id': 'write@company.com',
+                'user_id': self.user_id,
                 'page_number': n_page,
             }]}
             response = self.api.get(
@@ -386,7 +386,7 @@ class TestSingleVolumeInSeries(SingleVolumeInSeriesTest):
             expected['volumes'][0]['progress'] = {
                 'series_id': self.series_id,
                 'volume_id': self.volume_id,
-                'user_id': 'write@company.com',
+                'user_id': self.user_id,
                 'page_number': n_page,
             }
             response = self.api.get(
@@ -396,3 +396,88 @@ class TestSingleVolumeInSeries(SingleVolumeInSeriesTest):
                     item['progress'].pop(key)
             response.pop('_rev')
             self.assertEquals(expected, response)
+
+
+class SeveralVolumesWithProgress(SingleVolumeInSeriesTest):
+    def setUp(self):
+        SingleSeriesTest.setUp(self)
+        self.done = []
+        self.partially_read = []
+        self.not_started = []
+        for n_read, volume_list in (
+                (2, self.done),
+                (1, self.partially_read),
+                (0, self.not_started),
+                ):
+            for n_volume in range(1, 3):
+                pages = ['page{:x}.jpg'.format(x) for x in range(3)]
+                with tmp_cbt(pages) as f:
+                    fn = 'volume-{}.cbt'.format(n_volume)
+                    volume_id = self.api.post(
+                        '/series/{}/volumes'.format(self.series_id),
+                        upload_files=[('input', fn, f.read())],
+                        content_type='multipart/form-data',
+                    ).json_body['volumes'][0]
+                volume_list.append(volume_id)
+                if n_read > 0:
+                    self.api.put_json(
+                        '/volumes/{}/reader_progress'.format(volume_id),
+                        {'page_number': n_read})
+
+    @property
+    def expected_series(self):
+        value = super(SeveralVolumesWithProgress, self).expected_series
+        value['uploaded_volumes'] = 6
+        return value
+
+    @property
+    def expected_volumes(self):
+        return [{
+            '@class': 'Volume',
+            '_id': x,
+            'filename': 'volume-{}.cbt'.format(n + 1),
+            'volume_number': n + 1,
+            'language': None,
+            'pages': 3,
+            'progress': {
+                'page_number': 1,
+                'series_id': self.series_id,
+                'user_id': self.user_id,
+                'volume_id': x,
+            },
+        } for n, x in enumerate(self.partially_read)
+        ] + [{
+            '@class': 'Volume',
+            '_id': x,
+            'filename': 'volume-{}.cbt'.format(n + 1),
+            'volume_number': n + 1,
+            'language': None,
+            'pages': 3,
+            'progress': None,
+        } for n, x in enumerate(self.not_started)
+        ] + [{
+            '@class': 'Volume',
+            '_id': x,
+            'filename': 'volume-{}.cbt'.format(n + 1),
+            'volume_number': n + 1,
+            'language': None,
+            'pages': 3,
+            'progress': {
+                'page_number': 2,
+                'series_id': self.series_id,
+                'user_id': self.user_id,
+                'volume_id': x,
+            }
+        } for n, x in enumerate(self.done)
+        ]
+
+    def test_get_series(self):
+        expected = self.expected_series_full
+        response = self.api.get('/series/{}'.format(self.series_id)).json_body
+        for key in ('_id', '_rev', '@class', 'last_updated'):
+            for item in response['volumes']:
+                if item['progress']:
+                    item['progress'].pop(key)
+        for key in ('_rev',):
+            response.pop(key)
+        self.assertEquals(expected, response)

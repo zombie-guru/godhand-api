@@ -79,13 +79,27 @@ class Series(Document):
         return Series.by_attribute(db, **kws)
 
     def get_volumes_and_progress(self, db, user_id):
-        volumes = Volume.summary_by_series(db, startkey=[self.id])
+        """
+        Mult-sort by the following attributes.
+
+        1. All pages read go last.
+        2. Partially read pages go first.
+        3. Otherwise, sort by volume_number.
+        """
         progress = SeriesReaderProgress.retrieve_for_user(db, user_id, self.id)
         progress = {x.volume_id: dict(x.items()) for x in progress}
-        return [
+        volumes = [
             dict(x.items(), progress=progress.get(x.id, None))
-            for x in volumes
+            for x in Volume.summary_by_series(
+                db, startkey=[self.id], endkey=[self.id, {}])
         ]
+        volumes.sort(key=lambda x: (
+            x['progress']['page_number'] == x['pages'] - 1
+            if x['progress'] else False,
+            x['progress'] is None,
+            x['volume_number'],
+        ))
+        return volumes
 
 
 class SeriesReaderProgress(Document):
