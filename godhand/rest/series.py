@@ -90,6 +90,7 @@ def create_series(request):
     doc = Series(**request.validated)
     doc.store(request.registry['godhand:db'])
     Series.by_attribute.sync(request.registry['godhand:db'])
+    Series.by_series_id.sync(request.registry['godhand:db'])
     return {
         'series': [doc.id],
     }
@@ -99,8 +100,10 @@ def create_series(request):
 def get_series(request):
     """ Get a series by key.
     """
-    doc = request.validated['series']
-    return dict(doc.items())
+    return dict(Series.get_series_and_volumes(
+        request.registry['godhand:db'],
+        request.validated['series']['_id'],
+    ).items())
 
 
 @series_volumes.post(

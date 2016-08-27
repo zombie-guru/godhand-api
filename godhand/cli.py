@@ -56,6 +56,7 @@ def upload(couchdb_url=None, lines=None):
             break
         db.update(batch)
     Series.by_attribute.sync(db)
+    Series.by_series_id.sync(db)
 
 
 def iterdocs(lines):
