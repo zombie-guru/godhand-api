@@ -111,12 +111,15 @@ class RootLoggedInTest(ApiTest):
 
 
 class WriteUserLoggedInTest(ApiTest):
+    user_id = 'write@company.com'
+
     def setUp(self):
         super(WriteUserLoggedInTest, self).setUp()
         self.oauth2_login(self.root_email)
-        self.api.put_json('/users/write%40company.com', {'groups': ['admin']})
+        self.api.put_json(
+            '/users/{}'.format(self.user_id), {'groups': ['admin']})
         self.api.post('/logout')
-        self.oauth2_login('write@company.com')
+        self.oauth2_login(self.user_id)
 
 
 @contextlib.contextmanager

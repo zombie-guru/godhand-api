@@ -18,6 +18,10 @@ class SeriesVolumePathSchema(SeriesPathSchema):
     n_volume = co.SchemaNode(co.Integer(), location='path')
 
 
+class SeriesVolumePagePathSchema(SeriesVolumePathSchema):
+    n_page = co.SchemaNode(co.Integer(), location='path')
+
+
 series_collection = GodhandService(
     name='series_collection', path='/series')
 series = GodhandService(name='series', path='/series/{series}')
@@ -27,6 +31,9 @@ series_volumes = GodhandService(
     name='series_volumes', path='/series/{series}/volumes')
 series_volume = GodhandService(
     name='series_volume', path='/series/{series}/volumes/{n_volume}')
+series_volume_page = GodhandService(
+    name='series_volume_page',
+    path='/series/{series}/volumes/{n_volume}/pages/{n_page}')
 series_reader_progress = GodhandService(
     name='series_reader_progress', path='/series/{series}/reader_progress')
 
@@ -147,6 +154,38 @@ def get_series_volume(request):
         page['url'] = request.route_url(
             'volume_file', volume=volume.id, filename=page['filename'])
     return result
+
+
+@series_volume_page.get(
+    schema=SeriesVolumePagePathSchema,
+    permission='view',
+)
+def get_series_volume_page(request):
+    """ Get a volume page by offset.
+    """
+    v = request.validated
+    try:
+        volume = Volume.get_series_volume(
+            request.registry['godhand:db'], v['series'].id, v['n_volume'])
+    except IndexError:
+        raise HTTPNotFound()
+
+    try:
+        page = volume.pages[request.validated['n_page']]
+    except IndexError:
+        raise HTTPNotFound('Page does not exist.')
+
+    attachment = volume['_attachments'][page['filename']]
+    mimetype = attachment['content_type']
+
+    attachment = request.registry['godhand:db'].get_attachment(
+        volume.id, page['filename'])
+    if attachment is None:
+        raise HTTPNotFound()
+    response = request.response
+    response.body_file = attachment
+    response.content_type = mimetype
+    return response
 
 
 class SetSeriesCoverPageSchema(SeriesPathSchema):
