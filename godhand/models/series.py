@@ -10,6 +10,8 @@ from couchdb.mapping import TextField
 from couchdb.mapping import ViewField
 import couchdb.http
 
+from .volume import Volume
+
 
 class Series(Document):
     class_ = TextField('@class', default='Series')
@@ -40,23 +42,12 @@ class Series(Document):
     }
     ''')
 
-    by_series_id = ViewField('by_series_id', '''
-    function(doc) {
-        if (doc['@class'] === 'Series') {
-            emit([doc._id, 0], doc);
-        }
-        else if (doc['@class'] == 'Volume') {
-            emit([doc.series_id, 1, doc.volume_number], {
-                _id: doc._id,
-                filename: doc.filename,
-                volume_number: doc.volume_number,
-                language: doc.language,
-                '@class': doc['@class'],
-                pages: doc.pages.length
-            });
-        }
-    }
-    ''')
+    @classmethod
+    def create(cls, db, **kws):
+        doc = cls(**kws)
+        doc.store(db)
+        Series.by_attribute.sync(db)
+        return doc
 
     @classmethod
     def query(cls, db, genre=None, name=None, include_empty=False,
@@ -87,13 +78,14 @@ class Series(Document):
             kws['endkey'].append(u'name:\ufff0')
         return Series.by_attribute(db, **kws)
 
-    @classmethod
-    def get_series_and_volumes(cls, db, series_id):
-        rows = iter(cls.by_series_id(
-            db, startkey=[series_id], endkey=[series_id, {}]))
-        series = next(rows)
-        series['volumes'] = list(dict(x.items()) for x in rows)
-        return series
+    def get_volumes_and_progress(self, db, user_id):
+        volumes = Volume.summary_by_series(db, startkey=[self.id])
+        progress = SeriesReaderProgress.retrieve_for_user(db, user_id, self.id)
+        progress = {x.volume_id: dict(x.items()) for x in progress}
+        return [
+            dict(x.items(), progress=progress.get(x.id, None))
+            for x in volumes
+        ]
 
 
 class SeriesReaderProgress(Document):

@@ -87,10 +87,7 @@ def create_series(request):
         }
 
     """
-    doc = Series(**request.validated)
-    doc.store(request.registry['godhand:db'])
-    Series.by_attribute.sync(request.registry['godhand:db'])
-    Series.by_series_id.sync(request.registry['godhand:db'])
+    doc = Series.create(request.registry['godhand:db'], **request.validated)
     return {
         'series': [doc.id],
     }
@@ -100,10 +97,11 @@ def create_series(request):
 def get_series(request):
     """ Get a series by key.
     """
-    return dict(Series.get_series_and_volumes(
+    series = request.validated['series']
+    volumes = series.get_volumes_and_progress(
         request.registry['godhand:db'],
-        request.validated['series']['_id'],
-    ).items())
+        request.authenticated_userid)
+    return dict(series.items(), volumes=volumes)
 
 
 @series_volumes.post(
@@ -128,7 +126,6 @@ def upload_volume(request):
         volume_ids.append(volume.id)
     doc.store(db)
     Series.by_attribute.sync(request.registry['godhand:db'])
-    Volume.by_series.sync(request.registry['godhand:db'])
     return {'volumes': volume_ids}
 
 
