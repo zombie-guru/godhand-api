@@ -10,6 +10,8 @@ from couchdb.mapping import TextField
 from couchdb.mapping import ViewField
 import couchdb.http
 
+from .volume import Volume
+
 
 class Series(Document):
     class_ = TextField('@class', default='Series')
@@ -23,25 +25,29 @@ class Series(Document):
         volume_id=TextField(),
         page_number=IntegerField(),
     ))
-    volumes = ListField(DictField(Mapping.build(
-        id=TextField(),
-        volume_number=IntegerField(),
-    )))
+    uploaded_volumes = IntegerField(default=0)
 
     by_attribute = ViewField('by_attribute', '''
     function(doc) {
         if (doc['@class'] === 'Series') {
             var name = doc.name.toLowerCase();
             emit([null, 'name:' + name], doc);
-            emit([doc.volumes.length > 0, 'name:' + name], doc);
+            emit([doc.uploaded_volumes > 0, 'name:' + name], doc);
             doc.genres.map(function(genre) {
                 genre = genre.toLowerCase();
                 emit([null, 'genre:' + genre, name], doc);
-                emit([doc.volumes.length > 0, 'genre:' + genre, name], doc);
+                emit([doc.uploaded_volumes > 0, 'genre:' + genre, name], doc);
             })
         }
     }
     ''')
+
+    @classmethod
+    def create(cls, db, **kws):
+        doc = cls(**kws)
+        doc.store(db)
+        Series.by_attribute.sync(db)
+        return doc
 
     @classmethod
     def query(cls, db, genre=None, name=None, include_empty=False,
@@ -72,9 +78,14 @@ class Series(Document):
             kws['endkey'].append(u'name:\ufff0')
         return Series.by_attribute(db, **kws)
 
-    def add_volume(self, volume):
-        self.volumes.append(
-            {'id': volume.id, 'volume_number': volume.volume_number})
+    def get_volumes_and_progress(self, db, user_id):
+        volumes = Volume.summary_by_series(db, startkey=[self.id])
+        progress = SeriesReaderProgress.retrieve_for_user(db, user_id, self.id)
+        progress = {x.volume_id: dict(x.items()) for x in progress}
+        return [
+            dict(x.items(), progress=progress.get(x.id, None))
+            for x in volumes
+        ]
 
 
 class SeriesReaderProgress(Document):

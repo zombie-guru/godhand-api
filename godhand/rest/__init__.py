@@ -9,6 +9,7 @@ import couchdb.http
 import pyramid.security
 
 from ..config import GodhandConfiguration
+from ..models import init_views
 from ..models.auth import User
 from ..utils import wait_for_couchdb
 from .utils import groupfinder
@@ -56,6 +57,7 @@ def setup_db(config, couchdb_url, root_email):
     root.groups = ['admin', 'user']
     root.store(authdb)
     User.by_email.sync(authdb)
+    init_views(db)
 
 
 def setup_acl(config, secret):

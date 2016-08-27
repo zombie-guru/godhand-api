@@ -51,7 +51,7 @@ class TestEmpty(WriteUserLoggedInTest):
             'name': 'Berserk',
             'description': 'My Description',
             'genres': ['action', 'meme'],
-            'volumes': [],
+            'uploaded_volumes': 0,
             'author': None,
             'cover_page': {
                 'page_number': None,
@@ -59,6 +59,7 @@ class TestEmpty(WriteUserLoggedInTest):
             },
             'magazine': None,
             'number_of_volumes': None,
+            'volumes': [],
         }
         response = self.api.get('/series/{}'.format(series_id)).json_body
         assert response.pop('_rev')
@@ -90,7 +91,7 @@ class SingleSeriesTest(WriteUserLoggedInTest):
             'name': 'Berserk',
             'description': 'My Description',
             'genres': ['action', 'meme'],
-            'volumes': [],
+            'uploaded_volumes': 0,
             'author': None,
             'cover_page': {
                 'page_number': None,
@@ -194,12 +195,7 @@ class SingleVolumeInSeriesTest(SingleSeriesTest):
             'name': 'Berserk',
             'description': 'My Description',
             'genres': ['action', 'meme'],
-            'volumes': [
-                {
-                    'id': self.volume_id,
-                    'volume_number': 7,
-                }
-            ],
+            'uploaded_volumes': 1,
             'author': None,
             'cover_page': {
                 'page_number': None,
@@ -209,12 +205,29 @@ class SingleVolumeInSeriesTest(SingleSeriesTest):
             'number_of_volumes': None,
         }
 
+    @property
+    def expected_series_full(self):
+        return dict(self.expected_series, volumes=self.expected_volumes)
+
+    @property
+    def expected_volumes(self):
+        return [{
+            '@class': 'Volume',
+            '_id': self.volume_id,
+            'filename': 'volume-007.cbt',
+            'volume_number': 7,
+            'language': None,
+            'pages': 15,
+            'progress': None,
+        }]
+
 
 class TestSingleVolumeInSeries(SingleVolumeInSeriesTest):
     def test_get_series_by_id(self):
+        expected = self.expected_series_full
         response = self.api.get('/series/{}'.format(self.series_id)).json_body
         assert response.pop('_rev')
-        self.assertEquals(self.expected_series, response)
+        self.assertEquals(expected, response)
 
     def test_get_collection(self):
         expected = {'items': [self.expected_series]}
@@ -319,6 +332,7 @@ class TestSingleVolumeInSeries(SingleVolumeInSeriesTest):
             }
         )
         expected = self.expected_series
+        expected = self.expected_series_full
         expected['cover_page']['page_number'] = 5
         expected['cover_page']['volume_id'] = self.volume_id
         response = self.api.get('/series/{}'.format(self.series_id)).json_body
@@ -366,4 +380,19 @@ class TestSingleVolumeInSeries(SingleVolumeInSeriesTest):
             for key in ('_id', '_rev', '@class', 'last_updated'):
                 for item in response['items']:
                     item.pop(key)
+            self.assertEquals(expected, response)
+
+            expected = self.expected_series_full
+            expected['volumes'][0]['progress'] = {
+                'series_id': self.series_id,
+                'volume_id': self.volume_id,
+                'user_id': 'write@company.com',
+                'page_number': n_page,
+            }
+            response = self.api.get(
+                '/series/{}'.format(self.series_id)).json_body
+            for key in ('_id', '_rev', '@class', 'last_updated'):
+                for item in response['volumes']:
+                    item['progress'].pop(key)
+            response.pop('_rev')
             self.assertEquals(expected, response)

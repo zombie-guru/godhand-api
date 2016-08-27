@@ -43,6 +43,8 @@ class Volume(Document):
         except Exception:
             db.delete(doc.id)
             raise
+        cls.by_series.sync(db)
+        cls.summary_by_series.sync(db)
 
     @classmethod
     def get_series_volume(cls, db, series_id, index):
@@ -75,6 +77,21 @@ class Volume(Document):
     function(doc) {
         if (doc['@class'] === 'Volume') {
             emit([doc.series_id, doc.volume_number], doc);
+        }
+    }
+    ''')
+
+    summary_by_series = ViewField('summary_by_series', '''
+    function(doc) {
+        if (doc['@class'] == 'Volume') {
+            emit([doc.series_id, doc.volume_number], {
+                _id: doc._id,
+                filename: doc.filename,
+                volume_number: doc.volume_number,
+                language: doc.language,
+                '@class': doc['@class'],
+                pages: doc.pages.length
+            });
         }
     }
     ''')
