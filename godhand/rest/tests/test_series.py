@@ -319,10 +319,16 @@ class TestSingleVolumeInSeries(SingleVolumeInSeriesTest):
     def test_get_image_by_page_number_as_image(self):
         response = self.api.get('/volumes/{}/pages/0'.format(self.volume_id))
         self.assertEquals(response.content_type, 'image/jpeg')
+        response = self.api.get(
+            '/series/{}/volumes/0/pages/0'.format(self.series_id))
+        self.assertEquals(response.content_type, 'image/jpeg')
 
     def test_get_image_by_page_number_missing(self):
         self.api.get(
             '/volumes/{}/pages/10000'.format(self.volume_id), status=404)
+        self.api.get(
+            '/series/{}/volumes/0/pages/10000'.format(self.series_id),
+            status=404)
 
     def test_set_series_cover_page(self):
         self.api.put_json(
