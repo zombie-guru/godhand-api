@@ -61,6 +61,17 @@ class Volume(Document):
         )
         return view.rows[0]
 
+    def get_next_volume(self, db):
+        view = self.by_series(
+            db,
+            start_key=[self.series_id, self.volume_number + 1],
+            limit=1,
+        )
+        try:
+            return view.rows[0]
+        except IndexError:
+            return None
+
     class_ = TextField('@class', default='Volume')
     filename = TextField()
     volume_number = IntegerField()
