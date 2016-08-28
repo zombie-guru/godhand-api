@@ -30,6 +30,10 @@ volume_page = GodhandService(
     name='volume_page',
     path='/volumes/{volume}/pages/{page}'
 )
+volume_next = GodhandService(
+    name='volume_next',
+    path='/volumes/{volume}/next'
+)
 volume_file = GodhandService(
     name='volume_file',
     path='/volumes/{volume}/files/{filename:.+}'
@@ -131,6 +135,18 @@ def get_volume_file(request):
     response = request.response
     response.body_file = attachment
     return response
+
+
+@volume_next.get(
+    permission='view',
+    schema=VolumePathSchema
+)
+def get_next_volume(request):
+    next_volume = request.validated['volume'].get_next_volume(
+        request.registry['godhand:db'])
+    if next_volume:
+        return dict(next_volume.items())
+    return None
 
 
 class StoreReaderProgressSchema(VolumePathSchema):
