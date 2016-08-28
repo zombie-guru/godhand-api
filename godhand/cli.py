@@ -11,6 +11,7 @@ from .opendata import iterate_manga
 from .opendata import replace_uri_prefixes
 from .config import GodhandConfiguration
 from .models import Series
+from .models import Volume
 from .utils import wait_for_couchdb
 
 
@@ -56,7 +57,8 @@ def upload(couchdb_url=None, lines=None):
             break
         db.update(batch)
     Series.by_attribute.sync(db)
-    Series.by_series_id.sync(db)
+    Volume.by_series.sync(db)
+    Volume.summary_by_series.sync(db)
 
 
 def iterdocs(lines):
