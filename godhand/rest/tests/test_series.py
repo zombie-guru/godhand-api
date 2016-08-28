@@ -487,3 +487,13 @@ class SeveralVolumesWithProgress(SingleVolumeInSeriesTest):
         for key in ('_rev',):
             response.pop(key)
         self.assertEquals(expected, response)
+
+    def test_get_next(self):
+        for n_volume, volume_id in enumerate(self.partially_read[:-1]):
+            response = self.api.get(
+                '/volumes/{}/next'.format(volume_id)).json_body
+            self.assertEquals(n_volume + 2, response['volume_number'])
+        volume_id = self.partially_read[-1]
+        response = self.api.get(
+            '/volumes/{}/next'.format(volume_id)).json_body
+        self.assertEquals(None, response)
