@@ -22,13 +22,16 @@ class Volume(Document):
             pages=[],
             series_id=series_id,
         )
-        doc = doc.store(db)
+        doc.store(db)
 
         _doc = db[doc.id]
         try:
             pages = []
             for relpath, path in ext.iter_pages():
-                pages.append(get_image_meta(path, relpath))
+                try:
+                    pages.append(get_image_meta(path, relpath))
+                except OSError:
+                    continue
                 with open(path, 'rb') as f:
                     db.put_attachment(_doc, f, filename=relpath)
                 attachment = db.get_attachment(doc.id, relpath)
@@ -41,7 +44,8 @@ class Volume(Document):
             db.save(_doc)
             return doc
         except Exception:
-            db.delete(doc.id)
+            doc = cls.load(db, doc.id)
+            db.delete(doc)
             raise
         cls.by_series.sync(db)
         cls.summary_by_series.sync(db)
