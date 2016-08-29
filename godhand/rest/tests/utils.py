@@ -47,7 +47,15 @@ class ApiTest(unittest.TestCase):
             root_email=self.root_email,
         ))
         self.db = couchdb.client.Server(self.couchdb_url)['godhand']
+        self.authdb = couchdb.client.Server(self.couchdb_url)['auth']
         self.addCleanup(self._cleanDb)
+
+    @property
+    def cli_env(self):
+        return {
+            'GODHAND_AUTH_SECRET': 'my-auth-secret',
+            'GODHAND_ROOT_EMAIL': self.root_email,
+        }
 
     def use_fixture(self, fix):
         self.addCleanup(fix.cleanUp)
@@ -56,7 +64,7 @@ class ApiTest(unittest.TestCase):
 
     def _cleanDb(self):
         client = couchdb.client.Server(self.couchdb_url)
-        for dbname in ('godhand', 'auth', 'derp'):
+        for dbname in ('godhand', 'auth'):
             try:
                 client.delete(dbname)
             except couchdb.http.ResourceNotFound:
