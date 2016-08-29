@@ -19,6 +19,27 @@ class User(Document):
     email = TextField()
     groups = ListField(TextField())
 
+    @classmethod
+    def update(cls, db, userid, groups):
+        pass
+        user = cls.load(db, 'user:{}'.format(userid))
+        if user is None:
+            user = User(
+                email=userid,
+                id='user:{}'.format(userid),
+            )
+        user.groups = groups
+        user.store(db)
+        User.by_email.sync(db)
+        return user
+
+    @classmethod
+    def delete(cls, db, userid):
+        user = User.load(db, 'user:{}'.format(userid))
+        if user:
+            db.delete(user)
+            User.by_email.sync(db)
+
     by_email = ViewField('user_by_email', '''
     function(doc) {
         if (doc['@class'] == 'User') {
