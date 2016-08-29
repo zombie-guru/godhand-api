@@ -194,6 +194,7 @@ class CbzFile(CbtFile):
                         im.save(mf, 'png')
                         mf.flush()
                         ar.write(mf.name, o['filename'])
+                    ar.writestr('derp.db', 'abcedfg')
             f.flush()
             f.seek(0)
             yield f
