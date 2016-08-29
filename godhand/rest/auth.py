@@ -80,24 +80,14 @@ def update_user(request):
     authdb = request.registry['godhand:authdb']
     userid = request.validated['userid']
     groups = request.validated['groups']
-    user = User.load(authdb, 'user:{}'.format(userid))
-    if user is None:
-        user = User(
-            email=userid,
-            id='user:{}'.format(userid),
-        )
-    user.groups = groups
-    user.store(authdb)
-    User.by_email.sync(authdb)
+    User.update(authdb, userid, groups)
 
 
 @user.delete(schema=UserPathSchema)
 def delete_user(request):
     authdb = request.registry['godhand:authdb']
     userid = request.validated['userid']
-    user = User.load(authdb, 'user:{}'.format(userid))
-    if user:
-        authdb.delete(user)
+    User.delete(authdb, userid)
 
 
 @logout.post()
