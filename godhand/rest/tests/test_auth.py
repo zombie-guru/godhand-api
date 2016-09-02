@@ -78,6 +78,31 @@ class TestSingleUser(RootLoggedInTest):
         super(TestSingleUser, self).setUp()
         self.api.put('/users/user%40company.com')
 
+    def test_get_users(self):
+        expected = {'items': [
+            {
+                '@class': 'User',
+                '_id': 'user:root',
+                'email': 'root@domain.com',
+                'groups': [
+                    'admin', 'user',
+                ]
+            },
+            {
+                '@class': 'User',
+                '_id': 'user:user@company.com',
+                'email': 'user@company.com',
+                'groups': [
+                    'user',
+                ]
+            },
+        ]}
+        response = self.api.get('/users').json_body
+        for key in ('_rev',):
+            for x in response['items']:
+                x.pop(key)
+        self.assertEquals(expected, response)
+
     def test_update(self):
         self.api.put_json(
             '/users/user%40company.com', {'groups': ['user', 'admin']})
@@ -103,6 +128,7 @@ class TestSingleUserLoggedIn(RootLoggedInTest):
         self.oauth2_login('user@company.com')
 
     def test_admin_only_views(self):
+        self.api.get('/users', status=403)
         self.api.put_json(
             '/users/user%40company.com', {'groups': ['admin']}, status=403)
         self.api.get('/users/user%40company.com', status=403)
