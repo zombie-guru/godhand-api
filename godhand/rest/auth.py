@@ -26,6 +26,11 @@ class UserPathSchema(co.MappingSchema):
     userid = co.SchemaNode(co.String(), location='path', validator=co.Email())
 
 
+users = GodhandService(
+    name='users',
+    path='/users',
+    permission='admin'
+)
 user = GodhandService(
     name='user',
     path='/users/{userid}',
@@ -57,6 +62,16 @@ oauth2_callback = GodhandService(
     path='/oauth2-callback',
     permission='authenticate',
 )
+
+
+class GetUsersSchema(co.MappingSchema):
+    pass
+
+
+@users.get(schema=GetUsersSchema)
+def get_users(request):
+    users = User.query(request.registry['godhand:authdb'])
+    return {'items': [dict(x.items()) for x in users]}
 
 
 class UpdateUserSchema(UserPathSchema):

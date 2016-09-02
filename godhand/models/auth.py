@@ -44,6 +44,10 @@ class User(Document):
     def from_email(cls, db, email):
         return User.load(db, cls._id_from_email(email))
 
+    @classmethod
+    def query(cls, db):
+        return User.by_email(db)
+
     by_email = ViewField('user_by_email', '''
     function(doc) {
         if (doc['@class'] == 'User') {
