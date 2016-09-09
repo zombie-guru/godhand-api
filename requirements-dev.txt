@@ -1,0 +1,7 @@
+-e file:.#egg=godhand[tests]
+coverage
+docker-compose
+flake8
+invoke
+nose
+sphinx

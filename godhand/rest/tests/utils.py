@@ -3,7 +3,6 @@ from tempfile import TemporaryFile
 from urllib.parse import urlparse
 from urllib.parse import parse_qs
 import contextlib
-import logging
 import os
 import tarfile
 import unittest
@@ -15,13 +14,7 @@ import couchdb.client
 import couchdb.http
 import mock
 
-from godhand.tests.utils import get_docker_ip
-
-
-HERE = os.path.dirname(__file__)
-BUILDOUT_DIR = os.environ['BUILDOUT_DIRECTORY']
-BUILDOUT_BIN_DIRECTORY = os.environ['BUILDOUT_BIN_DIRECTORY']
-LOG = logging.getLogger('tests')
+from godhand.tests.utils import get_couchdb_url
 
 
 class ApiTest(unittest.TestCase):
@@ -30,7 +23,7 @@ class ApiTest(unittest.TestCase):
     client_appname = 'my-client-appname'
     client_id = 'my-client-id'
     client_secret = 'my-client-secret'
-    couchdb_url = 'http://couchdb:mypassword@{}:8001'.format(get_docker_ip())
+    couchdb_url = get_couchdb_url()
 
     disable_auth = False
 
@@ -52,10 +45,11 @@ class ApiTest(unittest.TestCase):
 
     @property
     def cli_env(self):
-        return {
-            'GODHAND_AUTH_SECRET': 'my-auth-secret',
-            'GODHAND_ROOT_EMAIL': self.root_email,
-        }
+        return dict(
+            os.environ,
+            GODHAND_AUTH_SECRET='my-auth-secret',
+            GODHAND_ROOT_EMAIL=self.root_email,
+        )
 
     def use_fixture(self, fix):
         self.addCleanup(fix.cleanUp)

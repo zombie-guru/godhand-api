@@ -1,10 +1,5 @@
-/.installed.cfg
-/bin/
 /build/
-/develop-eggs/
 /dist/
-/eggs/
-/parts/
-/var/
 /*.egg-info/
 __pycache__/
+/.virtualenv/

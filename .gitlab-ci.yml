@@ -1,0 +1,24 @@
+image: python:3.5-alpine
+
+cache:
+  paths:
+    - pip-cache
+
+services:
+  - couchdb:latest
+
+variables:
+  COUCHDB_USER: couchdb
+  COUCHDB_PASSWORD: mypassword
+
+before_script:
+  - export PIP_CACHE_DIR="pip-cache"
+  - export TEST_GODHAND_COUCHDB_URL="http://couchdb:mypassword@couchdb:5984"
+  - apk add --no-cache python3 unrar build-base python3-dev jpeg-dev zlib-dev
+  - mkdir -p $PIP_CACHE_DIR
+  - LIBRARY_PATH=/lib:/usr/lib pip3 install -r requirements-dev.txt
+
+all_tests:
+  script:
+    - flake8
+    - nosetests godhand

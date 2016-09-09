@@ -4,8 +4,8 @@ from urllib.parse import urlparse
 import logging
 import os
 
-BUILDOUT_DIR = os.environ['BUILDOUT_DIRECTORY']
-BUILDOUT_BIN_DIRECTORY = os.environ['BUILDOUT_BIN_DIRECTORY']
+
+GODHAND_COUCHDB_URL = os.environ.get('TEST_GODHAND_COUCHDB_URL')
 
 
 class DockerCompose(object):
@@ -14,22 +14,28 @@ class DockerCompose(object):
     def __init__(self, compose_file):
         self.compose_file = compose_file
 
-    def get_ip(self):
-        return get_docker_ip()
-
     def __call__(self, *args):
+        if GODHAND_COUCHDB_URL:
+            self.log.info('skipping fixture call - couchdb setup externally.')
+            return
         with SpooledTemporaryFile() as f:
             check_call((
-                os.path.join(BUILDOUT_BIN_DIRECTORY, 'docker-compose'),
+                'docker-compose',
                 '-f', self.compose_file,
                 '--project', 'testing',
-                ) + args, cwd=BUILDOUT_DIR, stderr=f, stdout=f)
+                ) + args, stderr=f, stdout=f)
             f.flush()
             f.seek(0)
             self.log.debug(f.read())
 
 
-def get_docker_ip():
+def get_couchdb_url():
+    if GODHAND_COUCHDB_URL:
+        return GODHAND_COUCHDB_URL
+    return 'http://couchdb:mypassword@{}:8001'.format(_get_docker_ip())
+
+
+def _get_docker_ip():
     try:
         url = os.environ['DOCKER_HOST']
     except KeyError:
