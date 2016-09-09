@@ -14,7 +14,7 @@ import couchdb.client
 import couchdb.http
 import mock
 
-from godhand.tests.utils import get_docker_ip
+from godhand.tests.utils import get_couchdb_url
 
 
 class ApiTest(unittest.TestCase):
@@ -23,7 +23,7 @@ class ApiTest(unittest.TestCase):
     client_appname = 'my-client-appname'
     client_id = 'my-client-id'
     client_secret = 'my-client-secret'
-    couchdb_url = 'http://couchdb:mypassword@{}:8001'.format(get_docker_ip())
+    couchdb_url = get_couchdb_url()
 
     disable_auth = False
 
