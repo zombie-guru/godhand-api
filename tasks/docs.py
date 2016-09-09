@@ -1,11 +1,7 @@
 from shutil import rmtree
-import os
 
 from invoke import Collection
 from invoke import task
-
-from .utils import BUILDOUT_DIRECTORY
-from .utils import BUILDOUT_BIN_DIRECTORY
 
 
 @task(name='clean')
@@ -28,7 +24,7 @@ ns = Collection(
 )
 ns.configure({
     'docs': {
-        'sphinx-bin': os.path.join(BUILDOUT_BIN_DIRECTORY, 'sphinx-build'),
-        'build-dir': os.path.join(BUILDOUT_DIRECTORY, 'build', 'docs'),
+        'sphinx-bin': 'sphinx-build',
+        'build-dir': 'build/docs',
     }
 })

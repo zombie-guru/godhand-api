@@ -4,9 +4,6 @@ from urllib.parse import urlparse
 import logging
 import os
 
-BUILDOUT_DIR = os.environ['BUILDOUT_DIRECTORY']
-BUILDOUT_BIN_DIRECTORY = os.environ['BUILDOUT_BIN_DIRECTORY']
-
 
 class DockerCompose(object):
     log = logging.getLogger('docker-compose')
@@ -20,10 +17,10 @@ class DockerCompose(object):
     def __call__(self, *args):
         with SpooledTemporaryFile() as f:
             check_call((
-                os.path.join(BUILDOUT_BIN_DIRECTORY, 'docker-compose'),
+                'docker-compose',
                 '-f', self.compose_file,
                 '--project', 'testing',
-                ) + args, cwd=BUILDOUT_DIR, stderr=f, stdout=f)
+                ) + args, stderr=f, stdout=f)
             f.flush()
             f.seek(0)
             self.log.debug(f.read())

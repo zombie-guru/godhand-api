@@ -1,0 +1,13 @@
+image: python:3.5-alpine
+
+cache:
+  paths:
+    - ~/.cache/
+
+before_script:
+  - apk add --no-cache python3 unrar build-base python3-dev jpeg-dev zlib-dev
+  - LIBRARY_PATH=/lib:/usr/lib pip3 install -r requirements-dev.txt
+
+all_tests:
+  script:
+    - nosetests -v godhand
