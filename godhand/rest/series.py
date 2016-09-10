@@ -136,6 +136,20 @@ def upload_volume(request):
     return {'volumes': volume_ids}
 
 
+@series_volumes.get(
+    schema=SeriesPathSchema,
+    permission='view',
+)
+def get_series_volumes(request):
+    series = request.validated['series']
+    return {
+        'volumes': series.get_volumes_and_progress(
+            request.registry['godhand:db'],
+            request.authenticated_userid,
+        )
+    }
+
+
 @series_volume.get(
     schema=SeriesVolumePathSchema,
     permission='view',

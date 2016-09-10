@@ -229,6 +229,14 @@ class TestSingleVolumeInSeries(SingleVolumeInSeriesTest):
         assert response.pop('_rev')
         self.assertEquals(expected, response)
 
+    def test_get_series_volumes(self):
+        expected = {
+            'volumes': self.expected_series_full['volumes'],
+        }
+        response = self.api.get(
+            '/series/{}/volumes'.format(self.series_id)).json_body
+        self.assertEquals(expected, response)
+
     def test_get_collection(self):
         expected = {'items': [self.expected_series]}
         response = self.api.get('/series').json_body
