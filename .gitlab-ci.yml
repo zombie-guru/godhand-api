@@ -1,24 +1,52 @@
-image: python:3.5-alpine
-
-cache:
-  paths:
-    - pip-cache
-
+image: docker:git
 services:
-  - couchdb:latest
-
+  - docker:dind
 variables:
-  COUCHDB_USER: couchdb
-  COUCHDB_PASSWORD: mypassword
-
+  DEV_IMAGE: zombieguru/godhand:$CI_BUILD_REF_NAME
+  RELEASE_IMAGE: zombieguru/godhand:latest
 before_script:
-  - export PIP_CACHE_DIR="pip-cache"
-  - export TEST_GODHAND_COUCHDB_URL="http://couchdb:mypassword@couchdb:5984"
-  - apk add --no-cache python3 unrar build-base python3-dev jpeg-dev zlib-dev
-  - mkdir -p $PIP_CACHE_DIR
-  - LIBRARY_PATH=/lib:/usr/lib pip3 install -r requirements-dev.txt
+  - docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD -e $DOCKER_EMAIL
 
-all_tests:
+stages:
+  - build
+  - test
+  - deploy
+
+build:
+  stage: build
   script:
+    - docker build -t $DEV_IMAGE .
+    - docker push $DEV_IMAGE
+
+flake8:
+  stage: test
+  image: python:3.4-alpine
+  services: []
+  before_script: []
+  script:
+    - pip3 install flake8
     - flake8
-    - nosetests
+
+nosetests:
+  stage: test
+  script:
+    - >
+      docker run -d
+      --name couchdb
+      -e 'COUCHDB_USER=couchdb'
+      -e 'COUCHDB_PASSWORD=mypassword'
+      couchdb
+    - >
+      docker run --rm --link couchdb
+      -e 'TEST_GODHAND_COUCHDB_URL=http://couchdb:mypassword@couchdb:5984'
+      $DEV_IMAGE
+      nosetests -v godhand
+
+deploy:
+  stage: deploy
+  script:
+    - docker pull $DEV_IMAGE
+    - docker tag $DEV_IMAGE $RELEASE_IMAGE
+    - docker push $RELEASE_IMAGE
+  only:
+    - master
