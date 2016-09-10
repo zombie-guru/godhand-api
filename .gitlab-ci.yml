@@ -21,4 +21,4 @@ before_script:
 all_tests:
   script:
     - flake8
-    - nosetests godhand
+    - nosetests
