@@ -119,7 +119,8 @@ def user_logout(request):
 
 @permissions.get()
 def get_permissions(request):
-    if request.authenticated_userid is None:
+    disable_auth = request.registry['godhand:cfg'].disable_auth
+    if not disable_auth and request.authenticated_userid is None:
         raise HTTPUnauthorized()
     return {
         k: request.has_permission(k) != 0
