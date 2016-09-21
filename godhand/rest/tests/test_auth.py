@@ -196,3 +196,12 @@ class TestAuthDisabled(ApiTest):
     def test_permission_tests(self):
         self.api.get('/permissions/view/test')
         self.api.get('/permissions/write/test')
+
+    def test_get_permissions(self):
+        expected = {
+            'view': True,
+            'write': True,
+            'admin': True,
+        }
+        response = self.api.get('/permissions').json_body
+        assert expected == response
