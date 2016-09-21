@@ -119,6 +119,8 @@ def user_logout(request):
 
 @permissions.get()
 def get_permissions(request):
+    if request.authenticated_userid is None:
+        raise HTTPUnauthorized()
     return {
         k: request.has_permission(k) != 0
         for k in ('view', 'write', 'admin')

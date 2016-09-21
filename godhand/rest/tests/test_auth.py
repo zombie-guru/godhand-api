@@ -60,13 +60,7 @@ class TestLoggedOut(ApiTest):
             )
 
     def test_get_permissions(self):
-        expected = {
-            'view': False,
-            'write': False,
-            'admin': False,
-        }
-        response = self.api.get('/permissions').json_body
-        assert expected == response
+        self.api.get('/permissions', status=401)
 
 
 class TestNoUsers(RootLoggedInTest):
