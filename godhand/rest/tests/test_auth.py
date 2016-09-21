@@ -59,6 +59,9 @@ class TestLoggedOut(ApiTest):
                 },
             )
 
+    def test_get_permissions(self):
+        self.api.get('/permissions', status=401)
+
 
 class TestNoUsers(RootLoggedInTest):
     def test_add_user(self):
@@ -72,6 +75,15 @@ class TestNoUsers(RootLoggedInTest):
     def test_delete(self):
         self.api.delete('/users/user%40company.com')
 
+    def test_get_permissions(self):
+        expected = {
+            'view': True,
+            'write': True,
+            'admin': True,
+        }
+        response = self.api.get('/permissions').json_body
+        assert expected == response
+
 
 class TestSingleUser(RootLoggedInTest):
     def setUp(self):
@@ -82,11 +94,9 @@ class TestSingleUser(RootLoggedInTest):
         expected = {'items': [
             {
                 '@class': 'User',
-                '_id': 'user:root',
+                '_id': 'user:root@domain.com',
                 'email': 'root@domain.com',
-                'groups': [
-                    'admin', 'user',
-                ]
+                'groups': ['root']
             },
             {
                 '@class': 'User',

@@ -50,13 +50,7 @@ def setup_db(config, couchdb_url, root_email):
         authdb = client['auth']
     config.registry['godhand:db'] = db
     config.registry['godhand:authdb'] = authdb
-    root = User.load(authdb, 'user:root')
-    if root is None:
-        root = User(id='user:root')
-    root.email = root_email
-    root.groups = ['admin', 'user']
-    root.store(authdb)
-    User.by_email.sync(authdb)
+    User.update(authdb, email=root_email, groups=['root'])
     init_views(db)
 
 
@@ -65,7 +59,7 @@ def setup_acl(config, secret):
     config.set_authentication_policy(AuthTktAuthenticationPolicy(
         secret, callback=groupfinder, hashalg='sha512'))
     config.set_session_factory(SignedCookieSessionFactory(secret))
-    config.set_default_permission('edit')
+    config.set_default_permission('admin')
 
 
 def has_permission(request, permission, context=None):
