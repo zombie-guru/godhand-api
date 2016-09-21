@@ -26,6 +26,7 @@ def default_acl(request):
     return [
         (Allow, 'group:user', ('view',)),
         (Allow, 'group:admin', ('write', 'view', 'admin')),
+        (Allow, 'group:root', ('write', 'view', 'admin')),
         (Allow, Everyone, ('authenticate',)),
         (Deny, Everyone, ('admin', 'view', 'write')),
     ]

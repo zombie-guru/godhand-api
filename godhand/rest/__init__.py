@@ -50,13 +50,7 @@ def setup_db(config, couchdb_url, root_email):
         authdb = client['auth']
     config.registry['godhand:db'] = db
     config.registry['godhand:authdb'] = authdb
-    root = User.load(authdb, 'user:root')
-    if root is None:
-        root = User(id='user:root')
-    root.email = root_email
-    root.groups = ['admin', 'user']
-    root.store(authdb)
-    User.by_email.sync(authdb)
+    User.update(authdb, email=root_email, groups=['root'])
     init_views(db)
 
 

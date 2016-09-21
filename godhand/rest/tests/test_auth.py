@@ -100,11 +100,9 @@ class TestSingleUser(RootLoggedInTest):
         expected = {'items': [
             {
                 '@class': 'User',
-                '_id': 'user:root',
+                '_id': 'user:root@domain.com',
                 'email': 'root@domain.com',
-                'groups': [
-                    'admin', 'user',
-                ]
+                'groups': ['root']
             },
             {
                 '@class': 'User',
