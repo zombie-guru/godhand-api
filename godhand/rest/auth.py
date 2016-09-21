@@ -41,6 +41,11 @@ logout = GodhandService(
     path='/logout',
     permission='authenticate',
 )
+permissions = GodhandService(
+    name='permissions',
+    path='/permissions',
+    permission='authenticate',
+)
 permission_test = GodhandService(
     name='permission_check',
     path='/permissions/{permission}/test',
@@ -110,6 +115,14 @@ def user_logout(request):
     response = request.response
     response.headers.extend(forget(request))
     return response
+
+
+@permissions.get()
+def get_permissions(request):
+    return {
+        k: request.has_permission(k) != 0
+        for k in ('view', 'write', 'admin')
+    }
 
 
 @permission_test.get()
