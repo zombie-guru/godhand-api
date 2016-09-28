@@ -1,11 +1,15 @@
-image: docker:git
-services:
-  - docker:dind
 variables:
+  COUCHDB_USER: couchdb
+  COUCHDB_PASSWORD: mypassword
   DEV_IMAGE: zombieguru/godhand:$CI_BUILD_REF_NAME
   RELEASE_IMAGE: zombieguru/godhand:latest
-before_script:
-  - docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD -e $DOCKER_EMAIL
+
+.docker-job: &docker_base
+  image: docker:git
+  services:
+    - docker:dind
+  before_script:
+    - docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD -e $DOCKER_EMAIL
 
 stages:
   - build
@@ -13,6 +17,7 @@ stages:
   - deploy
 
 build:
+  <<: *docker_base
   stage: build
   script:
     - docker build -t $DEV_IMAGE .
@@ -29,20 +34,16 @@ flake8:
 
 nosetests:
   stage: test
+  image: $DEV_IMAGE
+  services:
+    - couchdb:latest
+  variables:
+    TEST_GODHAND_COUCHDB_URL: http://$COUCHDB_USER:$COUCHDB_PASSWORD@couchdb:5984
   script:
-    - >
-      docker run -d
-      --name couchdb
-      -e 'COUCHDB_USER=couchdb'
-      -e 'COUCHDB_PASSWORD=mypassword'
-      couchdb
-    - >
-      docker run --rm --link couchdb
-      -e 'TEST_GODHAND_COUCHDB_URL=http://couchdb:mypassword@couchdb:5984'
-      $DEV_IMAGE
-      nosetests  --with-coverage --cover-package godhand -v godhand
+    - nosetests --with-coverage --cover-package godhand -v godhand
 
 deploy:
+  <<: *docker_base
   stage: deploy
   script:
     - docker pull $DEV_IMAGE
