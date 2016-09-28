@@ -40,7 +40,7 @@ nosetests:
       docker run --rm --link couchdb
       -e 'TEST_GODHAND_COUCHDB_URL=http://couchdb:mypassword@couchdb:5984'
       $DEV_IMAGE
-      nosetests -v godhand
+      nosetests  --with-coverage --cover-package godhand -v godhand
 
 deploy:
   stage: deploy
