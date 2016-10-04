@@ -30,6 +30,11 @@ class TestEmpty(WriteUserLoggedInTest):
     def test_get_progress_missing(self):
         self.api.get('/series/missing/reader_progress', status=400)
 
+    def test_get_overall_progress(self):
+        expected = {'items': []}
+        response = self.api.get('/reader_progress').json_body
+        assert expected == response
+
     def test_create_series(self):
         response = self.api.post_json(
             '/series', {
@@ -445,6 +450,24 @@ class SeveralVolumesWithProgress(SingleVolumeInSeriesTest):
         return value
 
     @property
+    def expected_progress_partial(self):
+        return [{
+            'page_number': 1,
+            'series_id': self.series_id,
+            'user_id': self.user_id,
+            'volume_id': x,
+        } for n, x in enumerate(self.partially_read)]
+
+    @property
+    def expected_progress_done(self):
+        return [{
+            'page_number': 2,
+            'series_id': self.series_id,
+            'user_id': self.user_id,
+            'volume_id': x,
+        } for x in self.done]
+
+    @property
     def expected_volumes(self):
         return [{
             '@class': 'Volume',
@@ -453,12 +476,7 @@ class SeveralVolumesWithProgress(SingleVolumeInSeriesTest):
             'volume_number': n + 1,
             'language': None,
             'pages': 3,
-            'progress': {
-                'page_number': 1,
-                'series_id': self.series_id,
-                'user_id': self.user_id,
-                'volume_id': x,
-            },
+            'progress': self.expected_progress_partial[n]
         } for n, x in enumerate(self.partially_read)
         ] + [{
             '@class': 'Volume',
@@ -476,14 +494,19 @@ class SeveralVolumesWithProgress(SingleVolumeInSeriesTest):
             'volume_number': n + 1,
             'language': None,
             'pages': 3,
-            'progress': {
-                'page_number': 2,
-                'series_id': self.series_id,
-                'user_id': self.user_id,
-                'volume_id': x,
-            }
+            'progress': self.expected_progress_done[n],
         } for n, x in enumerate(self.done)
         ]
+
+    def test_get_overall_progress(self):
+        progress = self.expected_progress_partial[::-1]
+        progress += self.expected_progress_done[::-1]
+        expected = {'items': progress}
+        response = self.api.get('/reader_progress').json_body
+        for key in ('_id', '_rev', '@class', 'last_updated'):
+            for x in response['items']:
+                assert x.pop(key)
+        assert expected == response
 
     def test_get_series(self):
         expected = self.expected_series_full
