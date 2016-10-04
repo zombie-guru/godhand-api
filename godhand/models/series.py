@@ -123,19 +123,32 @@ class SeriesReaderProgress(Document):
         doc.last_updated = datetime.utcnow()
         doc.store(db)
         cls.by_series.sync(db)
+        cls.by_last_read.sync(db)
 
     @classmethod
-    def retrieve_for_user(cls, db, user_id, series_id, limit=50):
-        try:
-            return cls.by_series(
-                db,
-                startkey=[user_id, series_id, {}],
-                endkey=[user_id, series_id, None],
-                descending=True,
-                limit=limit,
-            ).rows
-        except couchdb.http.ResourceNotFound:
-            return []
+    def retrieve_for_user(cls, db, user_id, series_id=None, limit=50):
+        if series_id:
+            try:
+                return cls.by_series(
+                    db,
+                    startkey=[user_id, series_id, {}],
+                    endkey=[user_id, series_id, None],
+                    descending=True,
+                    limit=limit,
+                ).rows
+            except couchdb.http.ResourceNotFound:
+                return []
+        else:
+            try:
+                return cls.by_last_read(
+                    db,
+                    startkey=[user_id, {}],
+                    endkey=[user_id, None],
+                    descending=True,
+                    limit=limit,
+                ).rows
+            except couchdb.http.ResourceNotFound:
+                return []
 
     by_series = ViewField('progress_by_series', '''
     function(doc) {
@@ -145,6 +158,20 @@ class SeriesReaderProgress(Document):
                     doc.user_id,
                     doc.series_id,
                     doc.last_updated
+                ],
+                doc
+            );
+        }
+    }
+    ''')
+
+    by_last_read = ViewField('by_last_read', '''
+    function(doc) {
+        if (doc['@class'] === 'SeriesReaderProgress') {
+            emit(
+                [
+                    doc.user_id,
+                    doc.last_updated,
                 ],
                 doc
             );
