@@ -119,12 +119,14 @@ def user_logout(request):
 
 @permissions.get()
 def get_permissions(request):
-    disable_auth = request.registry['godhand:cfg'].disable_auth
-    if not disable_auth and request.authenticated_userid is None:
-        raise HTTPUnauthorized()
+    logged_in = request.authenticated_userid is not None
+    auth_disabled = request.registry['godhand:cfg'].disable_auth
     return {
-        k: request.has_permission(k) != 0
-        for k in ('view', 'write', 'admin')
+        'needs_authentication': not auth_disabled and not logged_in,
+        'permissions': {
+            k: bool(request.has_permission(k))
+            for k in ('view', 'write', 'admin')
+        },
     }
 
 

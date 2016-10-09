@@ -60,7 +60,12 @@ class TestLoggedOut(ApiTest):
             )
 
     def test_get_permissions(self):
-        self.api.get('/permissions', status=401)
+        expected = {
+            'needs_authentication': True,
+            'permissions': {'view': False, 'write': False, 'admin': False},
+        }
+        response = self.api.get('/permissions').json_body
+        assert expected == response
 
 
 class TestNoUsers(RootLoggedInTest):
@@ -77,9 +82,8 @@ class TestNoUsers(RootLoggedInTest):
 
     def test_get_permissions(self):
         expected = {
-            'view': True,
-            'write': True,
-            'admin': True,
+            'needs_authentication': False,
+            'permissions': {'view': True, 'write': True, 'admin': True},
         }
         response = self.api.get('/permissions').json_body
         assert expected == response
@@ -199,9 +203,8 @@ class TestAuthDisabled(ApiTest):
 
     def test_get_permissions(self):
         expected = {
-            'view': True,
-            'write': True,
-            'admin': True,
+            'needs_authentication': False,
+            'permissions': {'view': True, 'write': True, 'admin': True},
         }
         response = self.api.get('/permissions').json_body
         assert expected == response
