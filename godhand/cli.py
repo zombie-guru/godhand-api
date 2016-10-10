@@ -7,7 +7,6 @@ import sys
 import couchdb.client
 import couchdb.http
 
-from .opendata import iterate_manga
 from .opendata import replace_uri_prefixes
 from .config import GodhandConfiguration
 from .models import Series
@@ -39,18 +38,10 @@ def main():
         level=args.log_level,
         format='%(asctime)s[%(name)s][%(levelname)s]: %(message)s',
     )
-    if args.cmd == 'dbpedia-dump':
-        dbpedia_dump()
-    elif args.cmd == 'upload':
+    if args.cmd == 'upload':
         upload(args.couchdb_url)
     elif args.cmd == 'update-user':
         update_user(args.couchdb_url, args.user, args.groups)
-
-
-def dbpedia_dump():
-    for manga in iterate_manga():
-        json.dump(manga, sys.stdout)
-        sys.stdout.write('\n')
 
 
 def upload(couchdb_url=None, lines=None):

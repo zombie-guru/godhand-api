@@ -22,7 +22,6 @@ setup(
         'PyJWT',
         'pyramid',
         'requests',
-        'sparqlwrapper',
     ],
     entry_points={
         'paste.app_factory': [
@@ -34,7 +33,9 @@ setup(
     },
     extras_require={
         'tests': [
+            'coverage',
             'mock',
+            'nose',
             'webtest',
         ],
         'docs': [
