@@ -24,11 +24,24 @@ class User(Document):
         return 'user:{}'.format(email)
 
     @classmethod
-    def update(cls, db, email, groups):
+    def retrieve_or_create(cls, db, email):
         user = cls.from_email(db, email)
         if user is None:
-            user = User(email=email, id=cls._id_from_email(email))
+            user = User(id=cls._id_from_email(email), email=email, groups=[])
+        return user
+
+    @classmethod
+    def update(cls, db, email, groups):
+        user = cls.retrieve_or_create(db, email)
         user.groups = groups
+        user.store(db)
+        User.by_email.sync(db)
+        return user
+
+    @classmethod
+    def append_groups(cls, db, email, groups):
+        user = cls.retrieve_or_create(db, email)
+        user.groups = sorted(set(user.groups + groups))
         user.store(db)
         User.by_email.sync(db)
         return user

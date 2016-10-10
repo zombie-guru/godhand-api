@@ -24,6 +24,7 @@ def main(global_config, **settings):
         google_client_appname=settings.get('google_client_appname'),
         auth_secret=settings.get('auth_secret'),
         root_email=settings.get('root_email'),
+        token_secret=settings.get('token_secret'),
     )
     config = Configurator(settings=settings)
     setup_db(config, cfg.couchdb_url, cfg.root_email)

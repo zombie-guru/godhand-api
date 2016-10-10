@@ -1,7 +1,12 @@
+from datetime import datetime
+from datetime import timedelta
 import hashlib
+import jwt
 import os
 
 from oauth2client import client
+from pyramid.httpexceptions import HTTPBadRequest
+from pyramid.httpexceptions import HTTPConflict
 from pyramid.httpexceptions import HTTPForbidden
 from pyramid.httpexceptions import HTTPFound
 from pyramid.httpexceptions import HTTPUnauthorized
@@ -67,6 +72,18 @@ oauth2_callback = GodhandService(
     path='/oauth2-callback',
     permission='authenticate',
 )
+create_signup_token = GodhandService(
+    name='create-signup-token',
+    path='/create-signup-token',
+    permission='admin',
+    description='Generate tokens with which users can signup for access.'
+)
+use_signup_token = GodhandService(
+    name='use-signup-token',
+    path='/use-signup-token',
+    permission='authenticate',
+    description='Use generated signup tokens.'
+)
 
 
 class GetUsersSchema(co.MappingSchema):
@@ -119,12 +136,14 @@ def user_logout(request):
 
 @permissions.get()
 def get_permissions(request):
-    disable_auth = request.registry['godhand:cfg'].disable_auth
-    if not disable_auth and request.authenticated_userid is None:
-        raise HTTPUnauthorized()
+    logged_in = request.authenticated_userid is not None
+    auth_disabled = request.registry['godhand:cfg'].disable_auth
     return {
-        k: request.has_permission(k) != 0
-        for k in ('view', 'write', 'admin')
+        'needs_authentication': not auth_disabled and not logged_in,
+        'permissions': {
+            k: bool(request.has_permission(k))
+            for k in ('view', 'write', 'admin')
+        },
     }
 
 
@@ -209,3 +228,64 @@ def verify_oauth2_token(request):
         return HTTPFound(token.callback_url, headers=response.headers)
     else:
         raise HTTPSeeOther(token.error_callback_url)
+
+
+def get_signup_token_secret(request):
+    secret = request.registry['godhand:cfg'].token_secret
+    if secret is None:
+        raise HTTPConflict('No token secret has been configured.')
+    return secret
+
+
+class CreateSignupTokenSchema(co.MappingSchema):
+    expiration_time = co.SchemaNode(
+        co.Integer(),
+        location='body',
+        default=timedelta(days=1).total_seconds(),
+        description='Time that token is valid for.',
+    )
+
+    @co.instantiate(location='body', validator=co.Length(min=1))
+    class groups(co.SequenceSchema):
+        group = co.SchemaNode(
+            co.String(),
+            validator=co.OneOf(['user', 'admin']),
+        )
+
+
+@create_signup_token.post(
+    accept='application/jwt',
+    schema=CreateSignupTokenSchema,
+)
+def post_create_signup_token(request):
+    """ Create a signup token for someone to use.
+
+    Raises 409 conflict if token secret has not been configured.
+    """
+    secret = get_signup_token_secret(request)
+    now = datetime.utcnow()
+    response = request.response
+    response.body = jwt.encode({
+        'exp': now + timedelta(seconds=request.validated['expiration_time']),
+        'iat': now,
+        'groups': request.validated['groups'],
+    }, secret, algorithm='HS256')
+    response.content_type = 'application/jwt'
+    return response
+
+
+@use_signup_token.post(
+    content_type='application/jwt',
+)
+def post_use_signup_token(request):
+    if request.authenticated_userid is None:
+        raise HTTPUnauthorized()
+    secret = get_signup_token_secret(request)
+    try:
+        groups = jwt.decode(request.body, secret)['groups']
+    except jwt.InvalidIssuedAtError:
+        HTTPBadRequest('Token is created in the future.')
+    except jwt.ExpiredSignatureError:
+        HTTPBadRequest('Token is expired.')
+    authdb = request.registry['godhand:authdb']
+    User.append_groups(authdb, request.authenticated_userid, groups)

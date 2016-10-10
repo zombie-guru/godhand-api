@@ -37,6 +37,7 @@ class ApiTest(unittest.TestCase):
             google_client_id=self.client_id,
             google_client_secret=self.client_secret,
             auth_secret='my-auth-secret',
+            token_secret='my-token-secret',
             root_email=self.root_email,
         ))
         self.db = couchdb.client.Server(self.couchdb_url)['godhand']
@@ -48,6 +49,7 @@ class ApiTest(unittest.TestCase):
         return dict(
             os.environ,
             GODHAND_AUTH_SECRET='my-auth-secret',
+            GODHAND_TOKEN_SECRET='my-token-secret',
             GODHAND_ROOT_EMAIL=self.root_email,
         )
 

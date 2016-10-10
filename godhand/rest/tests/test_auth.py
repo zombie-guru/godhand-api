@@ -60,7 +60,12 @@ class TestLoggedOut(ApiTest):
             )
 
     def test_get_permissions(self):
-        self.api.get('/permissions', status=401)
+        expected = {
+            'needs_authentication': True,
+            'permissions': {'view': False, 'write': False, 'admin': False},
+        }
+        response = self.api.get('/permissions').json_body
+        assert expected == response
 
 
 class TestNoUsers(RootLoggedInTest):
@@ -77,9 +82,8 @@ class TestNoUsers(RootLoggedInTest):
 
     def test_get_permissions(self):
         expected = {
-            'view': True,
-            'write': True,
-            'admin': True,
+            'needs_authentication': False,
+            'permissions': {'view': True, 'write': True, 'admin': True},
         }
         response = self.api.get('/permissions').json_body
         assert expected == response
@@ -166,6 +170,37 @@ class TestSingleUserLoggedIn(RootLoggedInTest):
         self.api.get('/permissions/view/test')
         self.api.get('/permissions/write/test', status=403)
 
+    def test_create_signup_token_not_admin(self):
+        self.api.post_json(
+            '/create-signup-token', {'groups': ['user']}, status=403)
+
+    def test_create_signup_token(self):
+        self.api.post('/logout')
+        self.oauth2_login(self.root_email)
+        res = self.api.post_json('/create-signup-token', {'groups': ['user']})
+        assert res.content_type == 'application/jwt'
+        token = res.body
+        self.api.post('/logout')
+        self.oauth2_login('newuser@company.com')
+        expected = {
+            'needs_authentication': False,
+            'permissions': {'view': False, 'write': False, 'admin': False},
+        }
+        response = self.api.get('/permissions').json_body
+        assert expected == response
+        self.api.request(
+            '/use-signup-token',
+            method='POST',
+            content_type='application/jwt',
+            body=token,
+        )
+        expected = {
+            'needs_authentication': False,
+            'permissions': {'view': True, 'write': False, 'admin': False},
+        }
+        response = self.api.get('/permissions').json_body
+        assert expected == response
+
 
 class TestAuthDisabled(ApiTest):
     disable_auth = True
@@ -199,9 +234,8 @@ class TestAuthDisabled(ApiTest):
 
     def test_get_permissions(self):
         expected = {
-            'view': True,
-            'write': True,
-            'admin': True,
+            'needs_authentication': False,
+            'permissions': {'view': True, 'write': True, 'admin': True},
         }
         response = self.api.get('/permissions').json_body
         assert expected == response

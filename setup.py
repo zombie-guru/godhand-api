@@ -19,6 +19,7 @@ setup(
         'colander',
         'oauth2client',
         'Pillow',
+        'PyJWT',
         'pyramid',
         'requests',
         'sparqlwrapper',
