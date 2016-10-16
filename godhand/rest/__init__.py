@@ -35,6 +35,7 @@ def main(global_config, **settings):
     config.registry['godhand:cfg'] = cfg
     config.add_route(
         'google-oauth2', 'https://accounts.google.com/o/oauth2/v2/auth')
+    config.add_static_view(name='docs', path=cfg.docs_folder)
     return config.make_wsgi_app()
 
 

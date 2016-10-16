@@ -70,9 +70,9 @@ def get_volume(request):
 
 class PutVolumeSchema(VolumePathSchema):
     volume_number = co.SchemaNode(
-        co.Integer(), validator=co.Range(min=0), missing=co.drop)
+        co.Integer(), validator=co.Range(min=0), missing=None)
     language = co.SchemaNode(
-        co.String(), missing=co.drop,
+        co.String(), missing=None,
         validator=co.OneOf(set(locale.locale_alias.keys()))
     )
 
@@ -90,7 +90,8 @@ def update_volume_meta(request):
             value = request.validated[key]
         except KeyError:
             continue
-        volume[key] = value
+        if value:
+            volume[key] = value
     volume.store(request.registry['godhand:db'])
 
 

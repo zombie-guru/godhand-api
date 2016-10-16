@@ -1,6 +1,5 @@
 import re
 
-from PIL import Image
 from couchdb.mapping import DictField
 from couchdb.mapping import Document
 from couchdb.mapping import IntegerField
@@ -120,6 +119,7 @@ def guess_volume_number(filename):
 
 
 def get_image_meta(filename, relpath):
+    from PIL import Image
     with Image.open(filename) as im:
         width, height = im.size
         return {
