@@ -18,7 +18,6 @@ setup(
         'couchdb',
         'colander',
         'oauth2client',
-        'Pillow',
         'PyJWT',
         'pyramid',
         'requests',
@@ -32,6 +31,9 @@ setup(
         ]
     },
     extras_require={
+        'tasks': [
+            'Pillow',
+        ],
         'tests': [
             'coverage',
             'mock',

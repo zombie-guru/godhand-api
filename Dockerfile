@@ -10,5 +10,6 @@ RUN apk add --no-cache python3 unrar build-base python3-dev jpeg-dev zlib-dev \
   && mv /target/app.ini / \
   && cd / \
   && rm -r /target
+COPY ./build/docs /docs/
 ENTRYPOINT ["dumb-init", "--"]
 CMD ["pserve", "app.ini"]
