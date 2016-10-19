@@ -25,8 +25,9 @@ class SeriesVolumePagePathSchema(SeriesVolumePathSchema):
 series_collection = GodhandService(
     name='series_collection', path='/series')
 series = GodhandService(name='series', path='/series/{series}')
-series_cover_page = GodhandService(
-    name='series_cover_page', path='/series/{series}/cover_page')
+series_cover = GodhandService(
+    name='series_cover',
+    path='/series/{series}/cover.jpg')
 series_volumes = GodhandService(
     name='series_volumes', path='/series/{series}/volumes')
 series_volume = GodhandService(
@@ -170,6 +171,27 @@ def get_series_volume(request):
     return result
 
 
+@series_cover.get(
+    schema=SeriesPathSchema,
+    permission='view',
+)
+def get_series_cover(request):
+    v = request.validated
+    try:
+        volume = Volume.get_series_volume(
+            request.registry['godhand:db'], v['series'].id, 0)
+    except IndexError:
+        raise HTTPNotFound()
+    attachment = request.registry['godhand:db'].get_attachment(
+        volume.id, 'cover.jpg')
+    if attachment is None:
+        raise HTTPNotFound()
+    response = request.response
+    response.body_file = attachment
+    response.content_type = 'image/jpeg'
+    return response
+
+
 @series_volume_page.get(
     schema=SeriesVolumePagePathSchema,
     permission='view',
@@ -206,28 +228,6 @@ class SetSeriesCoverPageSchema(SeriesPathSchema):
     volume_id = co.SchemaNode(co.String(), location='body')
     page_number = co.SchemaNode(
         co.Integer(), location='body', validator=co.Range(min=0))
-
-
-@series_cover_page.put(
-    schema=SetSeriesCoverPageSchema,
-    permission='write',
-)
-def set_series_cover_page(request):
-    db = request.registry['godhand:db']
-    v = request.validated
-    series = v['series']
-    volume = Volume.load(db, v['volume_id'])
-    if volume is None:
-        raise HTTPBadRequest('Invalid volume.')
-    try:
-        volume.pages[v['page_number']]
-    except IndexError:
-        raise HTTPBadRequest('Invalid page number')
-    series.cover_page = {
-        'volume_id': volume.id,
-        'page_number': v['page_number'],
-    }
-    series.store(db)
 
 
 @series_reader_progress.get(

@@ -15,7 +15,6 @@ variables:
 .python: &python_base
   image: python:3.4-alpine
   before_script:
-    - apk add --no-cache bash
     - pip install -r requirements-dev.txt
   cache:
     paths:
@@ -31,12 +30,17 @@ stages:
 lint:
   <<: *python_base
   stage: lint
+  before_script:
+    - pip install flake8
   script:
     - flake8
 
 build-docs:
   <<: *python_base
   stage: build-docs
+  before_script:
+    - apk add --no-cache bash build-base python3-dev jpeg-dev zlib-dev
+    - pip install -r requirements-dev.txt
   script:
     - inv docs.build
   artifacts:
