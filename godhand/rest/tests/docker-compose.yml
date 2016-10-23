@@ -1,7 +1,0 @@
-db:
-  image: couchdb:latest
-  environment:
-    COUCHDB_USER: couchdb
-    COUCHDB_PASSWORD: mypassword
-  ports:
-    - 8001:5984

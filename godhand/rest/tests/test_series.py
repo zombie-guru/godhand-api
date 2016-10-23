@@ -3,8 +3,8 @@ import os
 
 from PIL import Image
 
-from .utils import CbtFile
-from .utils import CbzFile
+from godhand.tests.fakevolumes import CbtFile
+from godhand.tests.fakevolumes import CbzFile
 from .utils import WriteUserLoggedInTest
 from .utils import tmp_cbt
 
@@ -329,6 +329,10 @@ class TestSingleVolumeInSeries(SingleVolumeInSeriesTest):
         self.api.get(
             '/series/{}/volumes/1'.format(self.series_id), status=404)
 
+    def test_get_series_cover(self):
+        response = self.api.get('/series/{}/cover.jpg'.format(self.series_id))
+        self.assertEquals(response.content_type, 'image/jpeg')
+
     def test_get_image_by_page_number_as_image(self):
         response = self.api.get('/volumes/{}/pages/0'.format(self.volume_id))
         self.assertEquals(response.content_type, 'image/jpeg')
@@ -342,40 +346,6 @@ class TestSingleVolumeInSeries(SingleVolumeInSeriesTest):
         self.api.get(
             '/series/{}/volumes/0/pages/10000'.format(self.series_id),
             status=404)
-
-    def test_set_series_cover_page(self):
-        self.api.put_json(
-            '/series/{}/cover_page'.format(self.series_id), {
-                'volume_id': self.volume_id,
-                'page_number': 5,
-            }
-        )
-        expected = self.expected_series
-        expected = self.expected_series_full
-        expected['cover_page']['page_number'] = 5
-        expected['cover_page']['volume_id'] = self.volume_id
-        response = self.api.get('/series/{}'.format(self.series_id)).json_body
-        for key in ('_rev',):
-            response.pop(key)
-        self.assertEquals(expected, response)
-
-    def test_set_series_cover_page_bad_volume(self):
-        self.api.put_json(
-            '/series/{}/cover_page'.format(self.series_id), {
-                'volume_id': 'missing',
-                'page_number': 5,
-            },
-            status=400,
-        )
-
-    def test_set_series_cover_page_bad_page_number(self):
-        self.api.put_json(
-            '/series/{}/cover_page'.format(self.series_id), {
-                'volume_id': 'missing',
-                'page_number': 100000,
-            },
-            status=400,
-        )
 
     def test_get_and_store_series_progress(self):
         expected = {'items': []}
@@ -415,6 +385,20 @@ class TestSingleVolumeInSeries(SingleVolumeInSeriesTest):
                     item['progress'].pop(key)
             response.pop('_rev')
             self.assertEquals(expected, response)
+
+    def test_reprocess_images(self):
+        self.api.post_json('/reprocess_images', {
+            'width': 860,
+            'blur_radius': 16,
+        })
+        response = self.api.get('/series/{}/cover.jpg'.format(self.series_id))
+        self.assertEquals(response.content_type, 'image/jpeg')
+        self.api.post_json('/reprocess_images', {
+            'width': 860,
+            'as_thumbnail': True,
+        })
+        response = self.api.get('/series/{}/cover.jpg'.format(self.series_id))
+        self.assertEquals(response.content_type, 'image/jpeg')
 
 
 class SeveralVolumesWithProgress(SingleVolumeInSeriesTest):

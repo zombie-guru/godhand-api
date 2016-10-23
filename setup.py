@@ -14,10 +14,11 @@ setup(
     include_package_data=True,
     zip_safe=False,
     install_requires=[
-        'cornice',
+        'cornice==1.2.1',
         'couchdb',
         'colander',
         'oauth2client',
+        'Pillow',
         'PyJWT',
         'pyramid',
         'requests',
@@ -31,16 +32,11 @@ setup(
         ]
     },
     extras_require={
-        'tasks': [
-            'Pillow',
-        ],
         'tests': [
             'coverage',
             'mock',
             'nose',
             'webtest',
-        ],
-        'docs': [
         ],
     }
 )

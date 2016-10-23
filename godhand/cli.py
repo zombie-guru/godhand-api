@@ -1,4 +1,5 @@
 from itertools import islice
+from subprocess import check_call
 import argparse
 import json
 import logging
@@ -23,6 +24,9 @@ def main():
     ap.add_argument('--log-level', default='DEBUG')
     s = ap.add_subparsers(dest='cmd')
 
+    s.add_parser('api')
+    s.add_parser('worker')
+
     s.add_parser('dbpedia-dump')
 
     p = s.add_parser('upload')
@@ -38,7 +42,9 @@ def main():
         level=args.log_level,
         format='%(asctime)s[%(name)s][%(levelname)s]: %(message)s',
     )
-    if args.cmd == 'upload':
+    if args.cmd == 'api':
+        check_call(['pserve', 'app.ini'])
+    elif args.cmd == 'upload':
         upload(args.couchdb_url)
     elif args.cmd == 'update-user':
         update_user(args.couchdb_url, args.user, args.groups)

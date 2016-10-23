@@ -1,16 +1,10 @@
-import os
-
-from godhand.tests.utils import DockerCompose
-
-here = os.path.dirname(__file__)
-docker_compose_file = os.path.join(here, 'docker-compose.yml')
-compose_cmd = DockerCompose(docker_compose_file)
+from godhand.tests.utils import setup_standard
+from godhand.tests.utils import teardown_standard
 
 
 def setup():
-    compose_cmd('up', '-d')
+    setup_standard()
 
 
 def teardown():
-    compose_cmd('stop', '--timeout', '0')
-    compose_cmd('rm', '-fv', '--all')
+    teardown_standard()

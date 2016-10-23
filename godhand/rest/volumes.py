@@ -4,6 +4,7 @@ from pyramid.httpexceptions import HTTPNotFound
 import colander as co
 
 from ..models.series import SeriesReaderProgress
+from ..models.volume import Volume
 from .utils import GodhandService
 from .utils import ValidatedVolume
 
@@ -26,6 +27,11 @@ volume = GodhandService(
     path='/volumes/{volume}',
     schema=VolumePathSchema,
 )
+volume_cover = GodhandService(
+    name='volume_cover',
+    path='/volumes/{volume}/cover.jpg',
+    permission='view'
+)
 volume_page = GodhandService(
     name='volume_page',
     path='/volumes/{volume}/pages/{page}'
@@ -41,6 +47,11 @@ volume_file = GodhandService(
 volume_reader_progress = GodhandService(
     name='volume_reader_progress',
     path='/volumes/{volume}/reader_progress'
+)
+reprocess_images = GodhandService(
+    name='reprocess_images',
+    path='/reprocess_images',
+    permission='admin'
 )
 
 
@@ -93,6 +104,23 @@ def update_volume_meta(request):
         if value:
             volume[key] = value
     volume.store(request.registry['godhand:db'])
+
+
+@volume_cover.get(schema=VolumePathSchema)
+def get_volume_cover(request):
+    """ Get a volume page.
+    """
+    volume = request.validated['volume']
+    attachment = volume['_attachments']['cover.jpg']
+    mimetype = attachment['content_type']
+    attachment = request.registry['godhand:db'].get_attachment(
+        volume.id, 'cover.jpg')
+    if attachment is None:
+        raise HTTPNotFound()
+    response = request.response
+    response.body_file = attachment
+    response.content_type = mimetype
+    return response
 
 
 @volume_page.get(permission='view', schema=VolumePagePathSchema)
@@ -166,4 +194,22 @@ def store_reader_progress(request):
         user_id=request.authenticated_userid,
         volume_id=v['volume'].id,
         page_number=v['page_number'],
+    )
+
+
+class ReprocessImagesSchema(co.MappingSchema):
+    width = co.SchemaNode(co.Integer(), validator=co.Range(min=128))
+    blur_radius = co.SchemaNode(
+        co.Integer(), validator=co.Range(min=0), missing=None)
+    as_thumbnail = co.SchemaNode(
+        co.Boolean(), missing=False)
+
+
+@reprocess_images.post(schema=ReprocessImagesSchema)
+def run_reprocess_images(request):
+    Volume.reprocess_all_images(
+        db=request.registry['godhand:db'],
+        width=request.validated['width'],
+        blur_radius=request.validated['blur_radius'],
+        as_thumbnail=request.validated['as_thumbnail'],
     )

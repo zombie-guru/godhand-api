@@ -4,8 +4,12 @@ from urllib.parse import urlparse
 import logging
 import os
 
+from godhand.utils import wait_for_couchdb
+
 
 GODHAND_COUCHDB_URL = os.environ.get('TEST_GODHAND_COUCHDB_URL')
+here = os.path.dirname(__file__)
+docker_compose_file = os.path.join(here, 'docker-compose.yml')
 
 
 class DockerCompose(object):
@@ -42,3 +46,15 @@ def _get_docker_ip():
         return '127.0.0.1'
     else:
         return urlparse(url).hostname
+
+
+def setup_standard():
+    compose_cmd = DockerCompose(docker_compose_file)
+    compose_cmd('up', '-d')
+    wait_for_couchdb(get_couchdb_url())
+
+
+def teardown_standard():
+    compose_cmd = DockerCompose(docker_compose_file)
+    compose_cmd('stop', '--timeout', '0')
+    compose_cmd('rm', '-fv', '--all')

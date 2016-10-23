@@ -1,3 +1,4 @@
+from contextlib import contextmanager
 from shutil import rmtree
 from tempfile import NamedTemporaryFile
 from tempfile import mkdtemp
@@ -50,17 +51,19 @@ class BookExtractor(object):
     def extract(self, tmp):
         raise NotImplementedError()
 
+    @contextmanager
     def iter_pages(self):
         tmp = mkdtemp()
-        try:
-            self.extract(tmp)
-            for root, dirs, files in os.walk(tmp):
-                files = filter(lambda x: not x.startswith('.'), files)
-                for page in files:
-                    page = os.path.join(root, page)
-                    yield os.path.relpath(page, tmp), page
-        finally:
-            rmtree(tmp)
+        yield self._iter_pages(tmp)
+        rmtree(tmp)
+
+    def _iter_pages(self, tmp):
+        self.extract(tmp)
+        for root, dirs, files in os.walk(tmp):
+            files = filter(lambda x: not x.startswith('.'), files)
+            for page in files:
+                page = os.path.join(root, page)
+                yield os.path.relpath(page, tmp), page
 
 
 class CbtBookExtractor(BookExtractor):

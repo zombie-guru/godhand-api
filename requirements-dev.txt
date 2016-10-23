@@ -1,4 +1,5 @@
--e file:.#egg=godhand[tests]
+-e file:.#egg=godhand
+cornice_sphinx
 docker-compose
 flake8
 invoke
