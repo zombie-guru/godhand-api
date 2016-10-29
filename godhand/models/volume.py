@@ -137,6 +137,22 @@ class Volume(Document):
         finally:
             cover.close
 
+    def update_meta(self, db, language=None, volume_number=None, series=None):
+        from .series import Series
+        if language:
+            self.language = language
+        if volume_number:
+            self.volume_number = volume_number
+        if series:
+            current_series = Series.load(db, self.series_id)
+            if current_series:
+                current_series.move_volume_to(db, series, self)
+            self.series_id = series.id
+        self.store(db)
+        self.by_series.sync(db)
+        self.summary_by_series.sync(db)
+        return self
+
     class_ = TextField('@class', default='Volume')
     filename = TextField()
     volume_number = IntegerField()

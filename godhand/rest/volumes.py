@@ -4,6 +4,7 @@ from pyramid.httpexceptions import HTTPNotFound
 import colander as co
 
 from ..models.series import SeriesReaderProgress
+from ..models.series import Series
 from ..models.volume import Volume
 from .utils import GodhandService
 from .utils import ValidatedVolume
@@ -80,6 +81,7 @@ def get_volume(request):
 
 
 class PutVolumeSchema(VolumePathSchema):
+    series_id = co.SchemaNode(co.String(), missing=None)
     volume_number = co.SchemaNode(
         co.Integer(), validator=co.Range(min=0), missing=None)
     language = co.SchemaNode(
@@ -95,15 +97,15 @@ class PutVolumeSchema(VolumePathSchema):
 def update_volume_meta(request):
     """ Update volume metadata.
     """
+    keys = ('language', 'volume_number')
+    db = request.registry['godhand:db']
     volume = request.validated['volume']
-    for key in ('volume_number', 'language'):
-        try:
-            value = request.validated[key]
-        except KeyError:
-            continue
-        if value:
-            volume[key] = value
-    volume.store(request.registry['godhand:db'])
+    series_id = request.validated['series_id']
+    series = None
+    if series_id:
+        series = Series.load(db, series_id)
+    volume.update_meta(
+        db, series=series, **{k: request.validated[k] for k in keys})
 
 
 @volume_cover.get(schema=VolumePathSchema)
