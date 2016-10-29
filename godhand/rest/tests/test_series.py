@@ -301,6 +301,7 @@ class TestSingleVolumeInSeries(SingleVolumeInSeriesTest):
         response = self.api.get('/volumes/{}'.format(self.volume_id)).json_body
         self.assertEquals(response['language'], 'en')
         self.assertEquals(response['volume_number'], 7)
+        self.assertEquals(response['series_id'], self.series_id)
 
     def test_update_volume_number(self):
         self.api.put_json('/volumes/{}'.format(self.volume_id), {
@@ -309,6 +310,16 @@ class TestSingleVolumeInSeries(SingleVolumeInSeriesTest):
         response = self.api.get('/volumes/{}'.format(self.volume_id)).json_body
         self.assertEquals(response['language'], None)
         self.assertEquals(response['volume_number'], 10)
+        self.assertEquals(response['series_id'], self.series_id)
+
+    def test_update_series_invalid(self):
+        self.api.put_json('/volumes/{}'.format(self.volume_id), {
+            'series_id': 'derp',
+        })
+        response = self.api.get('/volumes/{}'.format(self.volume_id)).json_body
+        self.assertEquals(response['language'], None)
+        self.assertEquals(response['volume_number'], 7)
+        self.assertEquals(response['series_id'], self.series_id)
 
     def test_get_volume_by_index(self):
         expected = {
@@ -512,3 +523,32 @@ class SeveralVolumesWithProgress(SingleVolumeInSeriesTest):
         response = self.api.get(
             '/volumes/{}/next'.format(volume_id)).json_body
         self.assertEquals(None, response)
+
+
+class TestSeveralVolumesAndSeries(SingleVolumeInSeriesTest):
+    def setUp(self):
+        SingleVolumeInSeriesTest.setUp(self)
+        self.other_series = []
+        for n_series in range(20):
+            response = self.api.post_json(
+                '/series', {
+                    'name': 'Berserk {}'.format(n_series),
+                    'description': 'My Description',
+                    'genres': ['action', 'meme'],
+                    'dbpedia_uri': None,
+                    'author': None,
+                    'magazine': None,
+                    'number_of_volumes': None,
+                }
+            ).json_body
+            self.assertEquals(len(response['series']), 1)
+            self.other_series.append(response['series'][0])
+
+    def test_update_series(self):
+        self.api.put_json('/volumes/{}'.format(self.volume_id), {
+            'series_id': self.other_series[0],
+        })
+        response = self.api.get('/volumes/{}'.format(self.volume_id)).json_body
+        self.assertEquals(response['language'], None)
+        self.assertEquals(response['volume_number'], 7)
+        self.assertEquals(response['series_id'], self.other_series[0])

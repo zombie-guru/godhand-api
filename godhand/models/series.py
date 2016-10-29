@@ -101,6 +101,15 @@ class Series(Document):
         ))
         return volumes
 
+    def move_volume_to(self, db, series, volume):
+        if volume.series_id != self.id:
+            raise ValueError('{} not a volume of {}!'.format(
+                volume.id, self.id))
+        self.uploaded_volumes -= 1
+        series.uploaded_volumes += 1
+        self.store(db)
+        series.store(db)
+
 
 class SeriesReaderProgress(Document):
     class_ = TextField('@class', default='SeriesReaderProgress')
