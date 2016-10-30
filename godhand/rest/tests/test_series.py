@@ -296,10 +296,10 @@ class TestSingleVolumeInSeries(SingleVolumeInSeriesTest):
 
     def test_update_volume_language(self):
         self.api.put_json('/volumes/{}'.format(self.volume_id), {
-            'language': 'en',
+            'language': 'eng',
         })
         response = self.api.get('/volumes/{}'.format(self.volume_id)).json_body
-        self.assertEquals(response['language'], 'en')
+        self.assertEquals(response['language'], 'eng')
         self.assertEquals(response['volume_number'], 7)
         self.assertEquals(response['series_id'], self.series_id)
 
