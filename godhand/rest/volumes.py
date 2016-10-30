@@ -1,5 +1,3 @@
-import locale
-
 from pyramid.httpexceptions import HTTPNotFound
 import colander as co
 
@@ -8,6 +6,7 @@ from ..models.series import Series
 from ..models.volume import Volume
 from .utils import GodhandService
 from .utils import ValidatedVolume
+from .utils import language_validator
 
 
 class VolumePathSchema(co.MappingSchema):
@@ -85,9 +84,7 @@ class PutVolumeSchema(VolumePathSchema):
     volume_number = co.SchemaNode(
         co.Integer(), validator=co.Range(min=0), missing=None)
     language = co.SchemaNode(
-        co.String(), missing=None,
-        validator=co.OneOf(set(locale.locale_alias.keys()))
-    )
+        co.String(), missing=None, validator=language_validator)
 
 
 @volume.put(

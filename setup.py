@@ -20,6 +20,7 @@ setup(
         'oauth2client',
         'Pillow',
         'PyJWT',
+        'pycountry',
         'pyramid',
         'requests',
     ],
