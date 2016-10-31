@@ -98,6 +98,14 @@ class Volume(Document):
         return view.rows[0]
 
     @classmethod
+    def collection_for_series(cls, db, series_id, language=None):
+        key = []
+        if language:
+            key.append('language:{}'.format(language))
+        key.append('series:{}'.format(series_id))
+        return cls.summary_by_series(db, startkey=key, endkey=key + [{}])
+
+    @classmethod
     def reprocess_all_images(cls, db, width, blur_radius, as_thumbnail):
         for volume in cls.by_series(db):
             volume.reprocess_images(db, width, blur_radius, as_thumbnail)
@@ -176,14 +184,19 @@ class Volume(Document):
     summary_by_series = ViewField('summary_by_series', '''
     function(doc) {
         if (doc['@class'] == 'Volume') {
-            emit([doc.series_id, doc.volume_number], {
+            var sKey = 'series:' + doc.series_id;
+            var lKey = 'language:' + doc.language;
+            var nKey = 'language:' + doc.volume_number;
+            var value = {
                 _id: doc._id,
                 filename: doc.filename,
                 volume_number: doc.volume_number,
                 language: doc.language,
                 '@class': doc['@class'],
                 pages: doc.pages.length
-            });
+            };
+            emit([sKey, nKey], value);
+            emit([lKey, sKey, nKey], value);
         }
     }
     ''')

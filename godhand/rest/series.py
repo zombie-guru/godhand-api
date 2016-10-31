@@ -7,6 +7,7 @@ from ..models import SeriesReaderProgress
 from ..models import Volume
 from .utils import GodhandService
 from .utils import ValidatedSeries
+from .utils import language_validator
 
 
 class SeriesPathSchema(co.MappingSchema):
@@ -101,14 +102,26 @@ def create_series(request):
     }
 
 
-@series.get(schema=SeriesPathSchema, permission='view')
+class GetSeriesSchema(SeriesPathSchema):
+    language = co.SchemaNode(
+        co.String(),
+        description='filter by ISO639-2 language code.',
+        location='querystring',
+        missing=None,
+        validator=language_validator,
+    )
+
+
+@series.get(schema=GetSeriesSchema, permission='view')
 def get_series(request):
     """ Get a series by key.
     """
     series = request.validated['series']
     volumes = series.get_volumes_and_progress(
         request.registry['godhand:db'],
-        request.authenticated_userid)
+        request.authenticated_userid,
+        language=request.validated['language'],
+    )
     return dict(series.items(), volumes=volumes)
 
 

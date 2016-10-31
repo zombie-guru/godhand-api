@@ -234,6 +234,14 @@ class TestSingleVolumeInSeries(SingleVolumeInSeriesTest):
         assert response.pop('_rev')
         self.assertEquals(expected, response)
 
+        expected = self.expected_series_full
+        expected['volumes'] = []
+        response = self.api.get(
+            '/series/{}'.format(self.series_id),
+            params={'language': 'eng'}).json_body
+        response.pop('_rev')
+        self.assertEquals(expected, response)
+
     def test_get_series_volumes(self):
         expected = {
             'volumes': self.expected_series_full['volumes'],
@@ -302,6 +310,32 @@ class TestSingleVolumeInSeries(SingleVolumeInSeriesTest):
         self.assertEquals(response['language'], 'eng')
         self.assertEquals(response['volume_number'], 7)
         self.assertEquals(response['series_id'], self.series_id)
+
+        expected = self.expected_series_full
+        expected['volumes'][0]['language'] = 'eng'
+        response = self.api.get('/series/{}'.format(self.series_id)).json_body
+        response.pop('_rev')
+        self.assertEquals(expected, response)
+
+        response = self.api.get(
+            '/series/{}'.format(self.series_id),
+            params={'language': 'eng'}).json_body
+        response.pop('_rev')
+        self.assertEquals(expected, response)
+
+        response = self.api.get(
+            '/series/{}'.format(self.series_id),
+            params={'language': 'eng'}).json_body
+        response.pop('_rev')
+        self.assertEquals(expected, response)
+
+        expected = self.expected_series_full
+        expected['volumes'] = []
+        response = self.api.get(
+            '/series/{}'.format(self.series_id),
+            params={'language': 'jpn'}).json_body
+        response.pop('_rev')
+        self.assertEquals(expected, response)
 
     def test_update_volume_number(self):
         self.api.put_json('/volumes/{}'.format(self.volume_id), {
