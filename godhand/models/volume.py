@@ -145,7 +145,7 @@ class Volume(Document):
             self.volume_number = volume_number
         if series:
             current_series = Series.load(db, self.series_id)
-            if current_series:
+            if current_series and current_series.id != series.id:
                 current_series.move_volume_to(db, series, self)
             self.series_id = series.id
         self.store(db)

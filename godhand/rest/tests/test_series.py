@@ -321,6 +321,15 @@ class TestSingleVolumeInSeries(SingleVolumeInSeriesTest):
         self.assertEquals(response['volume_number'], 7)
         self.assertEquals(response['series_id'], self.series_id)
 
+    def test_update_series_same(self):
+        self.api.put_json('/volumes/{}'.format(self.volume_id), {
+            'series_id': self.series_id,
+        })
+        response = self.api.get('/volumes/{}'.format(self.volume_id)).json_body
+        self.assertEquals(response['language'], None)
+        self.assertEquals(response['volume_number'], 7)
+        self.assertEquals(response['series_id'], self.series_id)
+
     def test_get_volume_by_index(self):
         expected = {
             '@class': 'Volume',
