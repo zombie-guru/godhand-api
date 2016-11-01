@@ -32,7 +32,5 @@ def put_settings(request):
     db = request.registry['godhand:db']
     settings = UserSettings.for_user(db, request.authenticated_userid)
     for key in ('language',):
-        value = request.validated[key]
-        if value:
-            settings[key] = value
+        settings[key] = request.validated[key]
     settings.store(db)

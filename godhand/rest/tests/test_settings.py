@@ -19,3 +19,12 @@ class TestSettings(WriteUserLoggedInTest):
         }
         response = self.api.get('/settings').json_body
         assert expected == response
+
+        self.api.put_json('/settings')
+
+        expected = {
+            'user_id': self.user_id,
+            'language': None,
+        }
+        response = self.api.get('/settings').json_body
+        assert expected == response
