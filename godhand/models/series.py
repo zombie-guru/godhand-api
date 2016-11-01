@@ -78,7 +78,7 @@ class Series(Document):
             kws['endkey'].append(u'name:\ufff0')
         return Series.by_attribute(db, **kws)
 
-    def get_volumes_and_progress(self, db, user_id):
+    def get_volumes_and_progress(self, db, user_id, language=None):
         """
         Mult-sort by the following attributes.
 
@@ -88,10 +88,11 @@ class Series(Document):
         """
         progress = SeriesReaderProgress.retrieve_for_user(db, user_id, self.id)
         progress = {x.volume_id: dict(x.items()) for x in progress}
+        volumes = Volume.collection_for_series(
+            db, series_id=self.id, language=language)
         volumes = [
             dict(x.items(), progress=progress.get(x.id, None))
-            for x in Volume.summary_by_series(
-                db, startkey=[self.id], endkey=[self.id, {}])
+            for x in volumes
         ]
         volumes.sort(key=lambda x: (
             x['progress']['page_number'] == x['pages'] - 1
