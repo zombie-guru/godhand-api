@@ -5,7 +5,7 @@ from .utils import GodhandService
 user = GodhandService(
     name='user-info',
     path='/user',
-    permission='view'
+    permission='authenticate',
 )
 
 
