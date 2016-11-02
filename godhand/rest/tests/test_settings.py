@@ -20,6 +20,19 @@ class TestSettings(WriteUserLoggedInTest):
         response = self.api.get('/settings').json_body
         assert expected == response
 
+        expected = {
+            'needs_authentication': False,
+            'permissions': {
+                'view': True,
+                'write': True,
+                'admin': True,
+            },
+            'user_id': self.user_id,
+            'language': 'jpn',
+        }
+        response = self.api.get('/user').json_body
+        assert expected == response
+
         self.api.put_json('/settings')
 
         expected = {
@@ -27,4 +40,17 @@ class TestSettings(WriteUserLoggedInTest):
             'language': None,
         }
         response = self.api.get('/settings').json_body
+        assert expected == response
+
+        expected = {
+            'needs_authentication': False,
+            'permissions': {
+                'view': True,
+                'write': True,
+                'admin': True,
+            },
+            'user_id': self.user_id,
+            'language': None,
+        }
+        response = self.api.get('/user').json_body
         assert expected == response
