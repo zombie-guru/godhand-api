@@ -57,7 +57,7 @@ def get_series_collection(request):
         view = Series.query(db, **request.validated)
     except ValueError as e:
         raise HTTPBadRequest(repr(e))
-    return {'items': [dict(x.items()) for x in iter(view)]}
+    return {'items': [x.as_dict() for x in iter(view)]}
 
 
 class PostSeriesCollectionSchema(co.MappingSchema):
@@ -122,7 +122,7 @@ def get_series(request):
         request.authenticated_userid,
         language=request.validated['language'],
     )
-    return dict(series.items(), volumes=volumes)
+    return dict(series.as_dict(), volumes=volumes)
 
 
 @series_volumes.post(
@@ -143,8 +143,8 @@ def upload_volume(request):
             fd=value.file,
             series_id=doc.id,
         )
-        doc.uploaded_volumes += 1
         volume_ids.append(volume.id)
+        doc._update_volume_meta(volume)
     doc.store(db)
     Series.by_attribute.sync(request.registry['godhand:db'])
     return {'volumes': volume_ids}

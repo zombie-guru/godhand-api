@@ -25,18 +25,23 @@ class Series(Document):
         volume_id=TextField(),
         page_number=IntegerField(),
     ))
-    uploaded_volumes = IntegerField(default=0)
+    volumes_meta = ListField(DictField(Mapping.build(
+        id=TextField(),
+        language=TextField(),
+        volume_number=IntegerField(),
+    )))
 
     by_attribute = ViewField('by_attribute', '''
     function(doc) {
         if (doc['@class'] === 'Series') {
             var name = doc.name.toLowerCase();
+            var hasVolumes = doc.volumes_meta.length > 0;
             emit([null, 'name:' + name], doc);
-            emit([doc.uploaded_volumes > 0, 'name:' + name], doc);
+            emit([hasVolumes, 'name:' + name], doc);
             doc.genres.map(function(genre) {
                 genre = genre.toLowerCase();
                 emit([null, 'genre:' + genre, name], doc);
-                emit([doc.uploaded_volumes > 0, 'genre:' + genre, name], doc);
+                emit([hasVolumes, 'genre:' + genre, name], doc);
             })
         }
     }
@@ -106,10 +111,45 @@ class Series(Document):
         if volume.series_id != self.id:
             raise ValueError('{} not a volume of {}!'.format(
                 volume.id, self.id))
-        self.uploaded_volumes -= 1
-        series.uploaded_volumes += 1
+        self.volumes_meta = filter(
+            lambda x: x.id != volume.id,
+            self.volumes_meta)
+        series._update_volume_meta(volume)
         self.store(db)
         series.store(db)
+        self.by_attribute.sync(db)
+
+    def update_volume_meta(self, db, volume):
+        self._update_volume_meta(volume)
+        self.store(db)
+        self.by_attribute.sync(db)
+
+    def _update_volume_meta(self, volume):
+        try:
+            _volume = next(filter(
+                lambda x: x.id == volume.id,
+                self.volumes_meta))
+        except StopIteration:
+            _volume = {}
+            self.volumes_meta.append(volume)
+        _volume['id'] = volume.id
+        _volume['language'] = volume.language
+        _volume['volume_number'] = volume.volume_number
+
+    def as_dict(self):
+        return {
+            'id': self.id,
+            'name': self.name,
+            'description': self.description,
+            'genres': self.genres,
+            'author': self.author,
+            'cover_page': {
+                'page_number': self.cover_page.page_number,
+                'volume_id': self.cover_page.volume_id,
+            },
+            'magazine': self.magazine,
+            'number_of_volumes': self.number_of_volumes,
+        }
 
 
 class SeriesReaderProgress(Document):

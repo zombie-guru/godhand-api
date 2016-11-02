@@ -151,11 +151,14 @@ class Volume(Document):
             self.language = language
         if volume_number:
             self.volume_number = volume_number
+        current_series = Series.load(db, self.series_id)
         if series:
             current_series = Series.load(db, self.series_id)
             if current_series and current_series.id != series.id:
                 current_series.move_volume_to(db, series, self)
             self.series_id = series.id
+        else:
+            current_series.update_volume_meta(db, self)
         self.store(db)
         self.by_series.sync(db)
         self.summary_by_series.sync(db)
