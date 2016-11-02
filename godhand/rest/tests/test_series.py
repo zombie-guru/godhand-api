@@ -306,6 +306,20 @@ class TestSingleVolumeInSeries(SingleVolumeInSeriesTest):
             params={'language': 'jpn'}).json_body
         self.assertEquals(expected, response)
 
+        expected = {'items': [self.expected_series]}
+        response = self.api.get(
+            '/series',
+            params={'language': 'eng'},
+        ).json_body
+        self.assertEquals(expected, response)
+
+        expected = {'items': []}
+        response = self.api.get(
+            '/series',
+            params={'language': 'jpn'},
+        ).json_body
+        self.assertEquals(expected, response)
+
     def test_update_volume_number(self):
         self.api.put_json('/volumes/{}'.format(self.volume_id), {
             'volume_number': 10,

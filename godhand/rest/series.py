@@ -48,6 +48,13 @@ class GetSeriesCollectionSchema(co.MappingSchema):
     full_match = co.SchemaNode(
         co.Boolean(), location='querystring', missing=False,
         description='Only return full matches.')
+    language = co.SchemaNode(
+        co.String(),
+        description='filter by ISO639-2 language code.',
+        location='querystring',
+        missing=None,
+        validator=language_validator,
+    )
 
 
 @series_collection.get(permission='view', schema=GetSeriesCollectionSchema)

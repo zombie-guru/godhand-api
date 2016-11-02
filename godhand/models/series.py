@@ -38,6 +38,23 @@ class Series(Document):
             var hasVolumes = doc.volumes_meta.length > 0;
             emit([null, 'name:' + name], doc);
             emit([hasVolumes, 'name:' + name], doc);
+
+            const languages = doc.volumes_meta
+                .map(function(meta){
+                    return meta.language;
+                })
+                .filter(function(value){
+                    return !!value;
+                })
+                .reduce(function(agg, value) {
+                    agg[value] = true;
+                    return agg
+                }, {});
+
+            for (var language in languages) {
+                emit(['lang:' + language, 'name:' + name], doc);
+            }
+
             doc.genres.map(function(genre) {
                 genre = genre.toLowerCase();
                 emit([null, 'genre:' + genre, name], doc);
@@ -56,7 +73,7 @@ class Series(Document):
 
     @classmethod
     def query(cls, db, genre=None, name=None, include_empty=False,
-              full_match=False):
+              full_match=False, language=None):
         if genre is not None and name is not None:
             raise ValueError('Only genre or name can be supplied')
         kws = {
@@ -64,6 +81,9 @@ class Series(Document):
             'endkey': [None if include_empty else True],
             'limit': 50,
         }
+        if language:
+            kws['startkey'] = ['lang:{}'.format(language)]
+            kws['endkey'] = ['lang:{}'.format(language)]
         if genre:
             genre = genre.lower()
             kws['startkey'].extend(['genre:' + genre, None])
