@@ -184,7 +184,7 @@ def get_series_volume(request):
             request.registry['godhand:db'], v['series'].id, v['n_volume'])
     except IndexError:
         raise HTTPNotFound()
-    result = dict(volume.items())
+    result = volume.as_dict()
     for page in result['pages']:
         page['url'] = request.route_url(
             'volume_file', volume=volume.id, filename=page['filename'])
@@ -260,4 +260,4 @@ def get_reader_progress(request):
         user_id=request.authenticated_userid,
         series_id=request.validated['series'].id,
     )
-    return {'items': [dict(x.items()) for x in items]}
+    return {'items': [x.as_dict() for x in items]}

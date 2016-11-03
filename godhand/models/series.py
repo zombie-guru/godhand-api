@@ -112,11 +112,14 @@ class Series(Document):
         3. Otherwise, sort by volume_number.
         """
         progress = SeriesReaderProgress.retrieve_for_user(db, user_id, self.id)
-        progress = {x.volume_id: dict(x.items()) for x in progress}
+        progress = {x.volume_id: x.as_dict()for x in progress}
         volumes = Volume.collection_for_series(
             db, series_id=self.id, language=language)
         volumes = [
-            dict(x.items(), progress=progress.get(x.id, None))
+            dict(
+                x.as_dict(short=True),
+                progress=progress.get(x.id, None),
+            )
             for x in volumes
         ]
         volumes.sort(key=lambda x: (
@@ -248,3 +251,12 @@ class SeriesReaderProgress(Document):
         }
     }
     ''')
+
+    def as_dict(self):
+        return {
+            'user_id': self.user_id,
+            'series_id': self.series_id,
+            'volume_id': self.volume_id,
+            'page_number': self.page_number,
+            'last_updated': self.last_updated.isoformat(),
+        }

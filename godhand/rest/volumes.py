@@ -72,11 +72,11 @@ def get_volume(request):
         }
 
     """
-    volume = request.validated['volume']
+    volume = request.validated['volume'].as_dict()
     for page in volume['pages']:
         page['url'] = request.route_url(
-            'volume_file', volume=volume.id, filename=page['filename'])
-    return dict(volume.items())
+            'volume_file', volume=volume['id'], filename=page['filename'])
+    return volume
 
 
 class PutVolumeSchema(VolumePathSchema):

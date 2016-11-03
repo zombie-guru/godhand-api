@@ -73,8 +73,6 @@ class TestNoUsers(RootLoggedInTest):
         self.api.put('/users/user%40company.com')
         expected = {'email': 'user@company.com', 'groups': ['user']}
         response = self.api.get('/users/user%40company.com').json_body
-        for key in ('_id', '_rev', '@class'):
-            response.pop(key)
         self.assertEquals(expected, response)
 
     def test_delete(self):
@@ -97,24 +95,15 @@ class TestSingleUser(RootLoggedInTest):
     def test_get_users(self):
         expected = {'items': [
             {
-                '@class': 'User',
-                '_id': 'user:root@domain.com',
                 'email': 'root@domain.com',
                 'groups': ['root']
             },
             {
-                '@class': 'User',
-                '_id': 'user:user@company.com',
                 'email': 'user@company.com',
-                'groups': [
-                    'user',
-                ]
+                'groups': ['user']
             },
         ]}
         response = self.api.get('/users').json_body
-        for key in ('_rev',):
-            for x in response['items']:
-                x.pop(key)
         self.assertEquals(expected, response)
 
     def test_update(self):
@@ -125,8 +114,6 @@ class TestSingleUser(RootLoggedInTest):
             'groups': ['user', 'admin'],
         }
         response = self.api.get('/users/user%40company.com').json_body
-        for key in ('_id', '_rev', '@class'):
-            response.pop(key)
         self.assertEquals(expected, response)
 
     def test_delete(self):

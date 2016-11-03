@@ -198,11 +198,30 @@ class Volume(Document):
                 '@class': doc['@class'],
                 pages: doc.pages.length
             };
-            emit([sKey, nKey], value);
-            emit([lKey, sKey, nKey], value);
+            emit([sKey, nKey], doc);
+            emit([lKey, sKey, nKey], doc);
         }
     }
     ''')
+
+    def as_dict(self, short=False):
+        d = {
+            'id': self.id,
+            'filename': self.filename,
+            'volume_number': self.volume_number,
+            'language': self.language,
+        }
+        if short:
+            d['pages'] = len(self.pages)
+        else:
+            d['pages'] = [{
+                'filename': x.filename,
+                'width': x.width,
+                'height': x.height,
+                'orientation': x.orientation,
+            } for x in self.pages]
+            d['series_id'] = self.series_id
+        return d
 
 
 def guess_volume_number(filename):
