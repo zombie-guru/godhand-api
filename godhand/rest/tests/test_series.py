@@ -308,11 +308,37 @@ class TestSingleVolumeInSeries(SingleVolumeInSeriesTest):
             params={'language': 'eng'},
         ).json_body
         self.assertEquals(expected, response)
+        response = self.api.get(
+            '/series',
+        ).json_body
+        self.assertEquals(expected, response)
 
         expected = {'items': []}
         response = self.api.get(
             '/series',
             params={'language': 'jpn'},
+        ).json_body
+        self.assertEquals(expected, response)
+
+        self.api.put_json('/volumes/{}'.format(self.volume_id), {
+            'language': 'jpn',
+        })
+
+        expected = {'items': [self.expected_series]}
+        response = self.api.get(
+            '/series',
+            params={'language': 'jpn'},
+        ).json_body
+        self.assertEquals(expected, response)
+        response = self.api.get(
+            '/series',
+        ).json_body
+        self.assertEquals(expected, response)
+
+        expected = {'items': []}
+        response = self.api.get(
+            '/series',
+            params={'language': 'eng'},
         ).json_body
         self.assertEquals(expected, response)
 

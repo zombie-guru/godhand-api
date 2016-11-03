@@ -140,24 +140,26 @@ class Series(Document):
         series._update_volume_meta(volume)
         self.store(db)
         series.store(db)
-        self.by_attribute.sync(db)
 
     def update_volume_meta(self, db, volume):
         self._update_volume_meta(volume)
         self.store(db)
-        self.by_attribute.sync(db)
+        # self.by_attribute.sync(db)
 
     def _update_volume_meta(self, volume):
         try:
             _volume = next(filter(
                 lambda x: x.id == volume.id,
                 self.volumes_meta))
+            _volume['id'] = volume.id
+            _volume['language'] = volume.language
+            _volume['volume_number'] = volume.volume_number
         except StopIteration:
-            _volume = {}
-            self.volumes_meta.append(volume)
-        _volume['id'] = volume.id
-        _volume['language'] = volume.language
-        _volume['volume_number'] = volume.volume_number
+            self.volumes_meta.append({
+                'id': volume.id,
+                'language': volume.language,
+                'volume_number': volume.volume_number,
+            })
 
     def as_dict(self):
         return {

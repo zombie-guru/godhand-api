@@ -1,4 +1,5 @@
 from tempfile import SpooledTemporaryFile
+from uuid import uuid4
 import logging
 import os
 import re
@@ -23,6 +24,7 @@ class Volume(Document):
         from PIL import ImageFilter
         ext = bookextractor.from_filename(filename)(fd)
         doc = cls(
+            id=uuid4().hex,
             filename=filename,
             volume_number=guess_volume_number(filename),
             pages=[],
@@ -30,7 +32,7 @@ class Volume(Document):
         )
         doc.store(db)
 
-        _doc = db[doc.id]
+        doc = db[doc.id]
         try:
             all_pages = []
 
@@ -52,7 +54,7 @@ class Volume(Document):
                             'vertical' if width < height else 'horizontal',
                     })
                     with open(path, 'rb') as f:
-                        db.put_attachment(_doc, f, filename=path_key)
+                        db.put_attachment(doc, f, filename=path_key)
 
                 pages.sort(key=lambda x: x['filename'])
 
@@ -68,12 +70,12 @@ class Volume(Document):
                         im.save(f, 'JPEG')
                         f.flush()
                         f.seek(0)
-                        db.put_attachment(_doc, f, filename='cover.jpg')
+                        db.put_attachment(doc, f, filename='cover.jpg')
 
-            _doc = db[doc.id]
-            _doc['pages'] = pages
-            db.save(_doc)
-            return doc
+            doc = db[doc.id]
+            doc['pages'] = pages
+            db.save(doc)
+            return cls.load(db, doc.id)
         except Exception:
             doc = cls.load(db, doc.id)
             db.delete(doc)
@@ -156,12 +158,13 @@ class Volume(Document):
             current_series = Series.load(db, self.series_id)
             if current_series and current_series.id != series.id:
                 current_series.move_volume_to(db, series, self)
-            self.series_id = series.id
+                self.series_id = series.id
         else:
             current_series.update_volume_meta(db, self)
         self.store(db)
         self.by_series.sync(db)
         self.summary_by_series.sync(db)
+        Series.by_attribute.sync(db)
         return self
 
     class_ = TextField('@class', default='Volume')
