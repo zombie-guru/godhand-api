@@ -93,7 +93,7 @@ class GetUsersSchema(co.MappingSchema):
 @users.get(schema=GetUsersSchema)
 def get_users(request):
     users = User.query(request.registry['godhand:authdb'])
-    return {'items': [dict(x.items()) for x in users]}
+    return {'items': [x.as_dict() for x in users]}
 
 
 class UpdateUserSchema(UserPathSchema):
@@ -109,7 +109,7 @@ def get_user(request):
     user = User.load(authdb, 'user:{}'.format(userid))
     if not user:
         raise HTTPNotFound()
-    return dict(user.items())
+    return dict(user.as_dict())
 
 
 @user.put(schema=UpdateUserSchema)

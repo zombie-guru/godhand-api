@@ -48,6 +48,13 @@ class GetSeriesCollectionSchema(co.MappingSchema):
     full_match = co.SchemaNode(
         co.Boolean(), location='querystring', missing=False,
         description='Only return full matches.')
+    language = co.SchemaNode(
+        co.String(),
+        description='filter by ISO639-2 language code.',
+        location='querystring',
+        missing=None,
+        validator=language_validator,
+    )
 
 
 @series_collection.get(permission='view', schema=GetSeriesCollectionSchema)
@@ -57,7 +64,7 @@ def get_series_collection(request):
         view = Series.query(db, **request.validated)
     except ValueError as e:
         raise HTTPBadRequest(repr(e))
-    return {'items': [dict(x.items()) for x in iter(view)]}
+    return {'items': [x.as_dict() for x in iter(view)]}
 
 
 class PostSeriesCollectionSchema(co.MappingSchema):
@@ -122,7 +129,7 @@ def get_series(request):
         request.authenticated_userid,
         language=request.validated['language'],
     )
-    return dict(series.items(), volumes=volumes)
+    return dict(series.as_dict(), volumes=volumes)
 
 
 @series_volumes.post(
@@ -143,8 +150,8 @@ def upload_volume(request):
             fd=value.file,
             series_id=doc.id,
         )
-        doc.uploaded_volumes += 1
         volume_ids.append(volume.id)
+        doc._update_volume_meta(volume)
     doc.store(db)
     Series.by_attribute.sync(request.registry['godhand:db'])
     return {'volumes': volume_ids}
@@ -177,7 +184,7 @@ def get_series_volume(request):
             request.registry['godhand:db'], v['series'].id, v['n_volume'])
     except IndexError:
         raise HTTPNotFound()
-    result = dict(volume.items())
+    result = volume.as_dict()
     for page in result['pages']:
         page['url'] = request.route_url(
             'volume_file', volume=volume.id, filename=page['filename'])
@@ -253,4 +260,4 @@ def get_reader_progress(request):
         user_id=request.authenticated_userid,
         series_id=request.validated['series'].id,
     )
-    return {'items': [dict(x.items()) for x in items]}
+    return {'items': [x.as_dict() for x in items]}

@@ -28,4 +28,4 @@ def get_reader_progress(request):
     """
     items = SeriesReaderProgress.retrieve_for_user(
         request.registry['godhand:db'], user_id=request.authenticated_userid)
-    return {'items': [dict(x.items()) for x in items]}
+    return {'items': [x.as_dict() for x in items]}

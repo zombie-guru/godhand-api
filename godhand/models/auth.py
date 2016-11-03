@@ -68,3 +68,9 @@ class User(Document):
         }
     }
     ''')
+
+    def as_dict(self):
+        return {
+            'email': self.email,
+            'groups': self.groups,
+        }
