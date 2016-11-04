@@ -116,6 +116,7 @@ class Volume(Document):
         view = self.by_series(
             db,
             start_key=[self.series_id, self.volume_number + 1],
+            end_key=[self.series_id, {}],
             limit=1,
         )
         try:
