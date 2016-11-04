@@ -139,6 +139,7 @@ class TestSingleSeries(SingleSeriesTest):
                 'language': None,
                 'filename': 'volume-007' + cls.ext,
                 'series_id': self.series_id,
+                'next': None,
             }
             response = self.api.get('/volumes/{}'.format(volume_id)).json_body
             pages = response.pop('pages')
@@ -549,15 +550,20 @@ class TestSeveralVolumesWithProgress(SingleVolumeInSeriesTest):
                 assert x['progress'].pop('last_updated')
         self.assertEquals(expected, response)
 
-    def test_get_next(self):
-        for n_volume, volume_id in enumerate(self.partially_read[:-1]):
-            response = self.api.get(
-                '/volumes/{}/next'.format(volume_id)).json_body
-            self.assertEquals(n_volume + 2, response['volume_number'])
-        volume_id = self.partially_read[-1]
-        response = self.api.get(
-            '/volumes/{}/next'.format(volume_id)).json_body
-        self.assertEquals(None, response)
+    def test_get_volume_first(self):
+        response = self.api.get('/volumes/{}'.format(self.done[0])).json_body
+        response['next'].pop('id')
+        expected = {
+            'filename': 'volume-{}.cbt'.format(2),
+            'volume_number': 2,
+            'language': None,
+            'pages': 3,
+        }
+        self.assertEquals(expected, response['next'])
+
+    def test_get_volume_last(self):
+        response = self.api.get('/volumes/{}'.format(self.done[-1])).json_body
+        self.assertEquals(None, response['next'])
 
 
 class TestSeveralVolumesAndSeries(SingleVolumeInSeriesTest):
