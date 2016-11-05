@@ -168,6 +168,18 @@ class Volume(Document):
         Series.by_attribute.sync(db)
         return self
 
+    def delete_file(self, db, filename):
+        from .series import Series
+        self.pages = filter(lambda x: x.filename != filename, self.pages)
+        self.store(db)
+        series = Series.load(db, self.series_id)
+        series.update_volume_meta(db, self)
+        Series.by_attribute.sync(db)
+
+        db.delete_attachment(self, filename)
+        self.by_series.sync(db)
+        self.summary_by_series.sync(db)
+
     class_ = TextField('@class', default='Volume')
     filename = TextField()
     volume_number = IntegerField()
@@ -194,14 +206,6 @@ class Volume(Document):
             var sKey = 'series:' + doc.series_id;
             var lKey = 'language:' + doc.language;
             var nKey = 'language:' + doc.volume_number;
-            var value = {
-                _id: doc._id,
-                filename: doc.filename,
-                volume_number: doc.volume_number,
-                language: doc.language,
-                '@class': doc['@class'],
-                pages: doc.pages.length
-            };
             emit([sKey, nKey], doc);
             emit([lKey, sKey, nKey], doc);
         }

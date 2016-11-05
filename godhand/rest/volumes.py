@@ -167,6 +167,15 @@ def get_volume_file(request):
     return response
 
 
+@volume_file.delete(
+    permission='write',
+    schema=VolumeFileSchema,
+)
+def delete_volume_file(request):
+    request.validated['volume'].delete_file(
+        request.registry['godhand:db'], request.validated['filename'])
+
+
 class StoreReaderProgressSchema(VolumePathSchema):
     page_number = co.SchemaNode(co.Integer(), validator=co.Range(min=0))
 

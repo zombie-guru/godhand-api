@@ -144,7 +144,6 @@ class Series(Document):
     def update_volume_meta(self, db, volume):
         self._update_volume_meta(volume)
         self.store(db)
-        # self.by_attribute.sync(db)
 
     def _update_volume_meta(self, volume):
         try:
