@@ -31,38 +31,23 @@ class Series(Document):
         volume_number=IntegerField(),
     )))
 
-    by_attribute = ViewField('by_attribute', '''
-    function(doc) {
-        if (doc['@class'] === 'Series') {
-            var name = doc.name.toLowerCase();
-            var hasVolumes = doc.volumes_meta.length > 0;
-            emit([null, 'name:' + name], doc);
-            emit([hasVolumes, 'name:' + name], doc);
+    @ViewField.define('by_attribute')
+    def by_attribute(doc):
+        if doc['@class'] == 'Series':
+            name = 'name:{}'.format(doc['name'].lower())
+            has_volumes = len(doc['volumes_meta']) > 0
+            yield (None, name), doc
+            yield (has_volumes, name), doc
 
-            const languages = doc.volumes_meta
-                .map(function(meta){
-                    return meta.language;
-                })
-                .filter(function(value){
-                    return !!value;
-                })
-                .reduce(function(agg, value) {
-                    agg[value] = true;
-                    return agg
-                }, {});
+            languages = {x['language'] for x in doc['volumes_meta']}
+            languages = filter(lambda x: x, languages)
+            for language in languages:
+                yield ('lang:{}'.format(language), name), doc
 
-            for (var language in languages) {
-                emit(['lang:' + language, 'name:' + name], doc);
-            }
-
-            doc.genres.map(function(genre) {
-                genre = genre.toLowerCase();
-                emit([null, 'genre:' + genre, name], doc);
-                emit([hasVolumes, 'genre:' + genre, name], doc);
-            })
-        }
-    }
-    ''')
+            for genre in doc['genres']:
+                genre = 'genre:{}'.format(genre)
+                yield (None, genre, name), doc
+                yield (has_volumes, genre, name), doc
 
     @classmethod
     def create(cls, db, **kws):
@@ -224,34 +209,15 @@ class SeriesReaderProgress(Document):
             except couchdb.http.ResourceNotFound:
                 return []
 
-    by_series = ViewField('progress_by_series', '''
-    function(doc) {
-        if (doc['@class'] === 'SeriesReaderProgress') {
-            emit(
-                [
-                    doc.user_id,
-                    doc.series_id,
-                    doc.last_updated
-                ],
-                doc
-            );
-        }
-    }
-    ''')
+    @ViewField.define('by_series')
+    def by_series(doc):
+        if doc['@class'] == 'SeriesReaderProgress':
+            yield (doc['user_id'], doc['series_id'], doc['last_updated']), doc
 
-    by_last_read = ViewField('by_last_read', '''
-    function(doc) {
-        if (doc['@class'] === 'SeriesReaderProgress') {
-            emit(
-                [
-                    doc.user_id,
-                    doc.last_updated,
-                ],
-                doc
-            );
-        }
-    }
-    ''')
+    @ViewField.define('by_last_read')
+    def by_last_read(doc):
+        if doc['@class'] == 'SeriesReaderProgress':
+            yield (doc['user_id'], doc['last_updated']), doc
 
     def as_dict(self):
         return {

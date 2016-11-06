@@ -1,5 +1,5 @@
 db:
-  image: couchdb:latest
+  image: zombieguru/couchdb:latest
   environment:
     COUCHDB_USER: couchdb
     COUCHDB_PASSWORD: mypassword
