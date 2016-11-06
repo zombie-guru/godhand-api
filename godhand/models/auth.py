@@ -61,10 +61,13 @@ class User(Document):
     def query(cls, db):
         return User.by_email(db)
 
-    @ViewField.define('by_email')
-    def by_email(doc):
-        if doc['@class'] == 'User':
-            yield doc['email'], doc
+    by_email = ViewField('user_by_email', '''
+    function(doc) {
+        if (doc['@class'] == 'User') {
+            emit(doc.email, doc);
+        }
+    }
+    ''')
 
     def as_dict(self):
         return {
