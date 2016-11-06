@@ -192,25 +192,19 @@ class Volume(Document):
         orientation=TextField(),
     )))
 
-    by_series = ViewField('volume_by_series', '''
-    function(doc) {
-        if (doc['@class'] === 'Volume') {
-            emit([doc.series_id, doc.volume_number], doc);
-        }
-    }
-    ''')
+    @ViewField.define('volume_by_series')
+    def by_series(doc):
+        if doc['@class'] == 'Volume':
+            yield (doc['series_id'], doc['volume_number']), doc
 
-    summary_by_series = ViewField('summary_by_series', '''
-    function(doc) {
-        if (doc['@class'] == 'Volume') {
-            var sKey = 'series:' + doc.series_id;
-            var lKey = 'language:' + doc.language;
-            var nKey = 'language:' + doc.volume_number;
-            emit([sKey, nKey], doc);
-            emit([lKey, sKey, nKey], doc);
-        }
-    }
-    ''')
+    @ViewField.define('summary_by_series')
+    def summary_by_series(doc):
+        if doc['@class'] == 'Volume':
+            series = 'series:{}'.format(doc['series_id'])
+            language = 'language:{}'.format(doc['language'])
+            volume_number = doc['volume_number']
+            yield (series, volume_number), doc
+            yield (language, series, volume_number), doc
 
     def as_dict(self, short=False):
         d = {

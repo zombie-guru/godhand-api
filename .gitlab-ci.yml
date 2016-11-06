@@ -60,9 +60,9 @@ nosetests:
   stage: test
   image: $DEV_IMAGE
   services:
-    - couchdb:latest
+    - zombieguru/couchdb:latest
   variables:
-    TEST_GODHAND_COUCHDB_URL: http://$COUCHDB_USER:$COUCHDB_PASSWORD@couchdb:5984
+    TEST_GODHAND_COUCHDB_URL: http://$COUCHDB_USER:$COUCHDB_PASSWORD@zombieguru__couchdb:5984
   script:
     - nosetests --with-coverage --cover-package godhand -v godhand
 
