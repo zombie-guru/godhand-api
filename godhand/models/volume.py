@@ -39,13 +39,13 @@ class Volume(Document):
             pages = []
             with ext.iter_pages() as page_iter:
                 for relpath, path in page_iter:
-                    all_pages.append(path)
                     path_key = os.path.join('original', relpath)
                     try:
                         with Image.open(path) as im:
                             width, height = im.size
                     except OSError:
                         continue
+                    all_pages.append(path)
                     pages.append({
                         'filename': path_key,
                         'width': width,
