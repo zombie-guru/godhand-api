@@ -103,6 +103,13 @@ class Series(Document):
             kws['endkey'].append(u'name:\ufff0')
         return Series.by_attribute(db, **kws)
 
+    def delete_volume(self, db, volume):
+        self.volumes_meta = filter(
+            lambda x: x.id != volume.id,
+            self.volumes_meta)
+        self.store(db)
+        self.by_attribute.sync(db)
+
     def get_volumes_and_progress(self, db, user_id, language=None):
         """
         Mult-sort by the following attributes.

@@ -471,6 +471,16 @@ class TestDeletePage(SingleVolumeInSeriesTest):
         self.assertNotEqual(response['pages'][0]['filename'], page['filename'])
 
 
+class TestDeleteVolume(SingleVolumeInSeriesTest):
+    def test(self):
+        self.api.delete('/volumes/{}'.format(self.volume_id))
+        expected = self.expected_series_full
+        expected['volumes'] = []
+        response = self.api.get('/series/{}'.format(self.series_id)).json_body
+        self.assertEquals(expected, response)
+        self.api.get('/series/{}/volumes/0'.format(self.series_id), status=404)
+
+
 class TestSeveralVolumesWithProgress(SingleVolumeInSeriesTest):
     maxDiff = None
 

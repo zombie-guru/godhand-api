@@ -107,6 +107,11 @@ def update_volume_meta(request):
         db, series=series, **{k: request.validated[k] for k in keys})
 
 
+@volume.delete(permission='write')
+def delete_volume(request):
+    request.validated['volume'].delete(request.registry['godhand:db'])
+
+
 @volume_cover.get(schema=VolumePathSchema)
 def get_volume_cover(request):
     """ Get a volume page.
