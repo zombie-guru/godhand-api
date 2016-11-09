@@ -180,6 +180,14 @@ class Volume(Document):
         self.by_series.sync(db)
         self.summary_by_series.sync(db)
 
+    def delete(self, db):
+        from .series import Series
+        series = Series.load(db, self.series_id)
+        series.delete_volume(db, self)
+        db.delete(self)
+        self.by_series.sync(db)
+        self.summary_by_series.sync(db)
+
     class_ = TextField('@class', default='Volume')
     filename = TextField()
     volume_number = IntegerField()
