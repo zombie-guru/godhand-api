@@ -422,6 +422,7 @@ class TestSingleVolumeInSeries(SingleVolumeInSeriesTest):
                 'volume_id': self.volume_id,
                 'user_id': self.user_id,
                 'max_spread': 1,
+                'volume_number': 7,
                 'page_number': n_page,
             }]}
             response = self.api.get(
@@ -437,6 +438,7 @@ class TestSingleVolumeInSeries(SingleVolumeInSeriesTest):
                 'volume_id': self.volume_id,
                 'user_id': self.user_id,
                 'max_spread': 1,
+                'volume_number': 7,
                 'page_number': n_page,
             }
             response = self.api.get(
@@ -516,6 +518,7 @@ class TestSeveralVolumesWithProgress(SingleVolumeInSeriesTest):
         return [{
             'max_spread': 1,
             'page_number': 1,
+            'volume_number': n + 1,
             'series_id': self.series_id,
             'user_id': self.user_id,
             'volume_id': x,
@@ -526,10 +529,11 @@ class TestSeveralVolumesWithProgress(SingleVolumeInSeriesTest):
         return [{
             'max_spread': 1,
             'page_number': 2,
+            'volume_number': n + 1,
             'series_id': self.series_id,
             'user_id': self.user_id,
             'volume_id': x,
-        } for x in self.done]
+        } for n, x in enumerate(self.done)]
 
     @property
     def expected_volumes(self):

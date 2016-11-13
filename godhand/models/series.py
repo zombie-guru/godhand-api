@@ -191,6 +191,7 @@ class SeriesReaderProgress(Document):
     page_number = IntegerField()
     max_spread = IntegerField()
     last_updated = DateTimeField()
+    volume_number = IntegerField()
 
     @classmethod
     def save_for_user(cls, db, user_id, series_id, volume, page_number):
@@ -204,6 +205,7 @@ class SeriesReaderProgress(Document):
         doc.page_number = page_number
         doc.last_updated = datetime.utcnow()
         doc.max_spread = volume.get_max_spread(page_number)
+        doc.volume_number = volume.volume_number
         doc.store(db)
         cls.by_series.sync(db)
         cls.by_last_read.sync(db)
@@ -270,4 +272,5 @@ class SeriesReaderProgress(Document):
             'max_spread': self.max_spread or 1,
             'page_number': self.page_number,
             'last_updated': self.last_updated.isoformat(),
+            'volume_number': self.volume_number,
         }
