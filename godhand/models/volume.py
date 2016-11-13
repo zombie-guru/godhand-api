@@ -220,6 +220,17 @@ class Volume(Document):
     }
     ''')
 
+    def get_max_spread(self, page_number):
+        left_page = self.pages[page_number]
+        try:
+            right_page = self.pages[page_number + 1]
+        except IndexError:
+            return 1
+        pages = (left_page, right_page)
+        if all(x['orientation'] == 'vertical' for x in pages):
+            return 2
+        return 1
+
     def as_dict(self, short=False):
         d = {
             'id': self.id,

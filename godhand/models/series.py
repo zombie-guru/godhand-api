@@ -189,19 +189,21 @@ class SeriesReaderProgress(Document):
     series_id = TextField()
     volume_id = TextField()
     page_number = IntegerField()
+    max_spread = IntegerField()
     last_updated = DateTimeField()
 
     @classmethod
-    def save_for_user(cls, db, user_id, series_id, volume_id, page_number):
-        id = 'progress:{}:{}'.format(volume_id, user_id)
+    def save_for_user(cls, db, user_id, series_id, volume, page_number):
+        id = 'progress:{}:{}'.format(volume.id, user_id)
         doc = cls.load(db, id)
         if doc is None:
             doc = cls(id=id)
         doc.user_id = user_id
         doc.series_id = series_id
-        doc.volume_id = volume_id
+        doc.volume_id = volume.id
         doc.page_number = page_number
         doc.last_updated = datetime.utcnow()
+        doc.max_spread = volume.get_max_spread(page_number)
         doc.store(db)
         cls.by_series.sync(db)
         cls.by_last_read.sync(db)
@@ -265,6 +267,7 @@ class SeriesReaderProgress(Document):
             'user_id': self.user_id,
             'series_id': self.series_id,
             'volume_id': self.volume_id,
+            'max_spread': self.max_spread or 1,
             'page_number': self.page_number,
             'last_updated': self.last_updated.isoformat(),
         }
