@@ -195,7 +195,7 @@ def store_reader_progress(request):
         db=request.registry['godhand:db'],
         series_id=v['volume'].series_id,
         user_id=request.authenticated_userid,
-        volume_id=v['volume'].id,
+        volume=v['volume'],
         page_number=v['page_number'],
     )
 
