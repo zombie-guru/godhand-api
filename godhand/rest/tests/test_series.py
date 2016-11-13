@@ -419,10 +419,12 @@ class TestSingleVolumeInSeries(SingleVolumeInSeriesTest):
 
             expected = {'items': [{
                 'series_id': self.series_id,
+                'series_name': 'Berserk',
                 'volume_id': self.volume_id,
                 'user_id': self.user_id,
                 'max_spread': 1,
                 'volume_number': 7,
+                'number_of_pages': 15,
                 'page_number': n_page,
             }]}
             response = self.api.get(
@@ -435,9 +437,11 @@ class TestSingleVolumeInSeries(SingleVolumeInSeriesTest):
             expected = self.expected_series_full
             expected['volumes'][0]['progress'] = {
                 'series_id': self.series_id,
+                'series_name': 'Berserk',
                 'volume_id': self.volume_id,
                 'user_id': self.user_id,
                 'max_spread': 1,
+                'number_of_pages': 15,
                 'volume_number': 7,
                 'page_number': n_page,
             }
@@ -517,9 +521,11 @@ class TestSeveralVolumesWithProgress(SingleVolumeInSeriesTest):
     def expected_progress_partial(self):
         return [{
             'max_spread': 1,
+            'number_of_pages': 3,
             'page_number': 1,
             'volume_number': n + 1,
             'series_id': self.series_id,
+            'series_name': 'Berserk',
             'user_id': self.user_id,
             'volume_id': x,
         } for n, x in enumerate(self.partially_read)]
@@ -528,9 +534,11 @@ class TestSeveralVolumesWithProgress(SingleVolumeInSeriesTest):
     def expected_progress_done(self):
         return [{
             'max_spread': 1,
+            'number_of_pages': 3,
             'page_number': 2,
             'volume_number': n + 1,
             'series_id': self.series_id,
+            'series_name': 'Berserk',
             'user_id': self.user_id,
             'volume_id': x,
         } for n, x in enumerate(self.done)]
