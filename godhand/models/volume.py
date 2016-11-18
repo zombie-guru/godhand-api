@@ -1,3 +1,4 @@
+from contextlib import contextmanager
 from tempfile import SpooledTemporaryFile
 from uuid import uuid4
 import logging
@@ -17,11 +18,29 @@ from .. import bookextractor
 LOG = logging.getLogger('godhand')
 
 
+@contextmanager
+def resized_image(filename, min_width=320, min_height=300):
+    from PIL import Image
+    with Image.open(filename) as im:
+        width, height = im.size
+        if height >= width:
+            new_height = int(height * min_width / width)
+            new_width = min_width
+        else:
+            new_height = min_height
+            new_width = int(width * min_height / height)
+        im = im.resize((new_width, new_height))
+        with SpooledTemporaryFile() as f:
+            im.save(f, 'JPEG')
+            f.flush()
+            f.seek(0)
+            yield f
+
+
 class Volume(Document):
     @classmethod
     def from_archieve(cls, db, filename, fd, series_id):
         from PIL import Image
-        from PIL import ImageFilter
         ext = bookextractor.from_filename(filename)(fd)
         doc = cls(
             id=uuid4().hex,
@@ -58,19 +77,8 @@ class Volume(Document):
 
                 pages.sort(key=lambda x: x['filename'])
 
-                with Image.open(sorted(all_pages)[0]) as im:
-                    im.resize(
-                        (
-                            1980,
-                            int(height * 1980 / width)
-                        ),
-                    )
-                    im = im.filter(ImageFilter.GaussianBlur(radius=20))
-                    with SpooledTemporaryFile() as f:
-                        im.save(f, 'JPEG')
-                        f.flush()
-                        f.seek(0)
-                        db.put_attachment(doc, f, filename='cover.jpg')
+                with resized_image(sorted(all_pages)[0]) as f:
+                    db.put_attachment(doc, f, filename='cover.jpg')
 
             doc = db[doc.id]
             doc['pages'] = pages
@@ -108,9 +116,9 @@ class Volume(Document):
         return cls.summary_by_series(db, startkey=key, endkey=key + [{}])
 
     @classmethod
-    def reprocess_all_images(cls, db, width, blur_radius, as_thumbnail):
+    def reprocess_all_images(cls, db, min_width, min_height):
         for volume in cls.by_series(db):
-            volume.reprocess_images(db, width, blur_radius, as_thumbnail)
+            volume.reprocess_images(db, min_width, min_height)
 
     def get_next_volume(self, db):
         view = self.by_series(
@@ -124,27 +132,14 @@ class Volume(Document):
         except IndexError:
             return None
 
-    def reprocess_images(self, db, width, blur_radius=0, as_thumbnail=False):
-        from PIL import Image
-        from PIL import ImageFilter
+    def reprocess_images(self, db, min_width, min_height):
         cover = db.get_attachment(self, self.pages[0]['filename'])
         if cover is None:
             LOG.warn('Could not get cover for Volume<{}>.'.format(self.id))
             return
         try:
-            with Image.open(cover) as im:
-                _width, _height = im.size
-                if as_thumbnail:
-                    im.thumbnail((width, int(_height * width / _width)))
-                else:
-                    im = im.resize((width, int(_height * width / _width)))
-                if blur_radius:
-                    im = im.filter(ImageFilter.GaussianBlur(blur_radius))
-                with SpooledTemporaryFile() as f:
-                    im.save(f, 'JPEG')
-                    f.flush()
-                    f.seek(0)
-                    db.put_attachment(self, f, filename='cover.jpg')
+            with resized_image(cover, min_width, min_height) as f:
+                db.put_attachment(self, f, filename='cover.jpg')
         finally:
             cover.close
 

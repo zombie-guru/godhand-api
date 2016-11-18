@@ -1,3 +1,43 @@
+from contextlib import contextmanager
+from tempfile import NamedTemporaryFile
+
+from PIL import Image
+
+
+@contextmanager
+def gen_image(width, height):
+    with NamedTemporaryFile() as f:
+        im = Image.new('RGB', (width, height))
+        im.save(f, 'png')
+        f.flush()
+        yield f.name
+
+
+class TestResizeImage(object):
+    def setup(self):
+        from ..volume import resized_image
+        self.fut = resized_image
+
+    def assert_dimensions(self, f, width, height):
+        im = Image.open(f)
+        assert (width, height) == im.size
+
+    def test_v(self):
+        with gen_image(3300, 3000) as filename:
+            with self.fut(filename) as f:
+                self.assert_dimensions(f, 330, 300)
+
+    def test_h(self):
+        with gen_image(3200, 3300) as filename:
+            with self.fut(filename) as f:
+                self.assert_dimensions(f, 320, 330)
+
+    def test_square(self):
+        with gen_image(540, 540) as filename:
+            with self.fut(filename) as f:
+                self.assert_dimensions(f, 320, 320)
+
+
 class TestVolume(object):
     def setup(self):
         from ..volume import Volume

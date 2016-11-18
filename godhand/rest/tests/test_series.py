@@ -454,14 +454,8 @@ class TestSingleVolumeInSeries(SingleVolumeInSeriesTest):
 
     def test_reprocess_images(self):
         self.api.post_json('/reprocess_images', {
-            'width': 860,
-            'blur_radius': 16,
-        })
-        response = self.api.get('/series/{}/cover.jpg'.format(self.series_id))
-        self.assertEquals(response.content_type, 'image/jpeg')
-        self.api.post_json('/reprocess_images', {
-            'width': 860,
-            'as_thumbnail': True,
+            'min_height': 860,
+            'min_width': 860,
         })
         response = self.api.get('/series/{}/cover.jpg'.format(self.series_id))
         self.assertEquals(response.content_type, 'image/jpeg')
