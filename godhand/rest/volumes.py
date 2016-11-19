@@ -201,18 +201,14 @@ def store_reader_progress(request):
 
 
 class ReprocessImagesSchema(co.MappingSchema):
-    width = co.SchemaNode(co.Integer(), validator=co.Range(min=128))
-    blur_radius = co.SchemaNode(
-        co.Integer(), validator=co.Range(min=0), missing=None)
-    as_thumbnail = co.SchemaNode(
-        co.Boolean(), missing=False)
+    min_height = co.SchemaNode(co.Integer(), validator=co.Range(min=128))
+    min_width = co.SchemaNode(co.Integer(), validator=co.Range(min=128))
 
 
 @reprocess_images.post(schema=ReprocessImagesSchema)
 def run_reprocess_images(request):
     Volume.reprocess_all_images(
         db=request.registry['godhand:db'],
-        width=request.validated['width'],
-        blur_radius=request.validated['blur_radius'],
-        as_thumbnail=request.validated['as_thumbnail'],
+        min_width=request.validated['min_width'],
+        min_height=request.validated['min_height'],
     )
