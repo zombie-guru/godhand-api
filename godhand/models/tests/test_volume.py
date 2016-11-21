@@ -85,3 +85,6 @@ class TestVolume(object):
         expected = 1
         response = instance.get_max_spread(0)
         assert expected == response
+
+    def test_get_user_usage_none(self):
+        pass

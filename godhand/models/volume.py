@@ -39,7 +39,7 @@ def resized_image(filename, min_width=320, min_height=300):
 
 class Volume(Document):
     @classmethod
-    def from_archieve(cls, db, filename, fd, series_id):
+    def from_archieve(cls, db, owner_id, filename, fd, series_id):
         from PIL import Image
         ext = bookextractor.from_filename(filename)(fd)
         doc = cls(
@@ -48,6 +48,7 @@ class Volume(Document):
             volume_number=guess_volume_number(filename),
             pages=[],
             series_id=series_id,
+            owner_id=owner_id,
         )
         doc.store(db)
 
@@ -67,6 +68,7 @@ class Volume(Document):
                     all_pages.append(path)
                     pages.append({
                         'filename': path_key,
+                        'filesize': os.stat(path).st_size,
                         'width': width,
                         'height': height,
                         'orientation':
@@ -91,6 +93,7 @@ class Volume(Document):
         finally:
             cls.by_series.sync(db)
             cls.summary_by_series.sync(db)
+            cls.user_usage.sync(db)
 
     @classmethod
     def get_series_volume(cls, db, series_id, index):
@@ -119,6 +122,11 @@ class Volume(Document):
     def reprocess_all_images(cls, db, min_width, min_height):
         for volume in cls.by_series(db):
             volume.reprocess_images(db, min_width, min_height)
+
+    @classmethod
+    def get_user_usage(cls, db, user_id):
+        rows = cls.user_usage(db, key=[user_id])
+        return sum(map(lambda x: x['value'], rows))
 
     def get_next_volume(self, db):
         view = self.by_series(
@@ -188,10 +196,12 @@ class Volume(Document):
     volume_number = IntegerField()
     language = TextField()
     series_id = TextField()
+    owner_id = TextField()
     pages = ListField(DictField(Mapping.build(
         filename=TextField(),
         width=IntegerField(),
         height=IntegerField(),
+        filesize=IntegerField(),
         orientation=TextField(),
     )))
 
@@ -214,6 +224,20 @@ class Volume(Document):
         }
     }
     ''')
+
+    user_usage = ViewField('user_usage', '''
+    function(doc) {
+        if (doc['@class'] == 'Volume') {
+            var filesize = 0;
+            doc.pages.forEach(function(x) {
+                filesize = filesize + x.filesize;
+            })
+            if (filesize > 0) {
+                emit([doc.owner_id], filesize);
+            }
+        }
+    }
+    ''', '_sum', wrapper=lambda x: x)
 
     def get_max_spread(self, page_number):
         left_page = self.pages[page_number]
