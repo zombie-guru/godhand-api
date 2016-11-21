@@ -146,6 +146,7 @@ def upload_volume(request):
     for key, value in request.POST.items():
         volume = Volume.from_archieve(
             db,
+            owner_id=request.authenticated_userid,
             filename=value.filename,
             fd=value.file,
             series_id=doc.id,

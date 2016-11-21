@@ -166,6 +166,10 @@ class TestSingleSeries(SingleSeriesTest):
                     page.pop(key)
             self.assertEquals(expected, pages)
 
+    def test_get_usage(self):
+        usage = self.api.get('/user/usage').json_body['usage']
+        assert usage == 0
+
 
 class SingleVolumeInSeriesTest(SingleSeriesTest):
     def setUp(self):
@@ -451,6 +455,10 @@ class TestSingleVolumeInSeries(SingleVolumeInSeriesTest):
                 for item in response['volumes']:
                     item['progress'].pop(key)
             self.assertEquals(expected, response)
+
+    def test_get_usage(self):
+        usage = self.api.get('/user/usage').json_body['usage']
+        assert usage > 0
 
     def test_reprocess_images(self):
         self.api.post_json('/reprocess_images', {
