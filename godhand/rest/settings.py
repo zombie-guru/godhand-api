@@ -2,6 +2,7 @@ import colander as co
 
 from ..models.user import UserSettings
 from .utils import GodhandService
+from .utils import ValidatedUser
 from .utils import language_validator
 
 
@@ -9,6 +10,16 @@ settings = GodhandService(
     name='settings',
     path='/settings',
     permission='view'
+)
+subscribers = GodhandService(
+    name='account subscribers',
+    path='/account/subscribers',
+    permission='authenticate',
+)
+subscriber = GodhandService(
+    name='account subscriber',
+    path='/account/subscribers/{subscriber}',
+    permission='authenticate',
 )
 
 
@@ -34,3 +45,22 @@ def put_settings(request):
     for key in ('language',):
         settings[key] = request.validated[key]
     settings.store(db)
+
+
+@subscribers.get()
+def get_subscribers(request):
+    db = request.registry['godhand:db']
+    settings = UserSettings.for_user(db, request.authenticated_userid)
+    return {'items': settings.subscribers}
+
+
+class PutSubscriberSchema(co.MappingSchema):
+    subscriber = co.SchemaNode(
+        ValidatedUser(), location='path', validator=co.NoneOf([None]),)
+
+
+@subscriber.put(schema=PutSubscriberSchema)
+def add_subscriber(request):
+    db = request.registry['godhand:db']
+    settings = UserSettings.for_user(db, request.authenticated_userid)
+    settings.add_subscriber(request.validated['subscriber'])

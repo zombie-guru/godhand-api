@@ -43,6 +43,13 @@ class ValidatedSeries(co.String):
         return Series.load(db, appstruct)
 
 
+class ValidatedUser(co.String):
+    def deserialize(self, node, cstruct):
+        appstruct = super(ValidatedUser, self).deserialize(node, cstruct)
+        db = node.bindings['request'].registry['godhand:db']
+        return User.load(db, appstruct)
+
+
 class ValidatedVolume(co.String):
     def deserialize(self, node, cstruct):
         appstruct = super(ValidatedVolume, self).deserialize(node, cstruct)

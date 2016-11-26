@@ -54,3 +54,10 @@ class TestSettings(WriteUserLoggedInTest):
         }
         response = self.api.get('/user').json_body
         assert expected == response
+
+    def test_get_set_subscribers(self):
+        expected = {'items': []}
+        response = self.api.get('/account/subscribers').json_body
+        assert expected == response
+
+        self.api.put('/account/subscribers/derp', status=400)
