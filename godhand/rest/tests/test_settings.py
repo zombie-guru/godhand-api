@@ -60,4 +60,8 @@ class TestSettings(WriteUserLoggedInTest):
         response = self.api.get('/account/subscribers').json_body
         assert expected == response
 
-        self.api.put('/account/subscribers/derp', status=400)
+        self.api.put('/account/subscribers/derp@herp.com')
+
+        expected = {'items': ['derp@herp.com']}
+        response = self.api.get('/account/subscribers').json_body
+        assert expected == response

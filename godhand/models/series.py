@@ -31,6 +31,12 @@ class Series(Document):
         volume_number=IntegerField(),
     )))
 
+    by_owner = ViewField('by_owner', '''
+    function(doc) {
+        if (doc['@class'] == 'Series')
+    }
+    ''')
+
     by_attribute = ViewField('by_attribute', '''
     function(doc) {
         if (doc['@class'] === 'Series') {
@@ -70,6 +76,10 @@ class Series(Document):
         doc.store(db)
         Series.by_attribute.sync(db)
         return doc
+
+    @classmethod
+    def get_series_for_user(cls, db, user_id):
+        pass
 
     @classmethod
     def query(cls, db, genre=None, name=None, include_empty=False,
