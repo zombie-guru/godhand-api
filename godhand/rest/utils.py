@@ -9,6 +9,7 @@ import pycountry
 
 from godhand.models.auth import User
 from godhand.models.series import Series
+from godhand.models.user import UserSettings
 from godhand.models.volume import Volume
 
 
@@ -34,6 +35,25 @@ def default_acl(request):
 
 
 GodhandService = partial(Service, acl=default_acl, permission='view')
+
+
+def query_owner_acl(request):
+    owner_id = request.validated['owner_id']
+    subscribers = UserSettings.for_user(owner_id).subscribers
+    return [
+        (Allow, owner_id, ('write', 'view')),
+    ] + [
+        (Allow, x, ('view',)) for x in subscribers
+    ]
+
+
+class QueryOwnerSchema(co.MappingSchema):
+    """ Base schema for an endpoint to view another user's content.
+
+    For use with for_owner_acl.
+    """
+    owner_id = co.SchemaNode(
+        co.String(), location='querystring', validator=co.Email())
 
 
 class ValidatedSeries(co.String):
