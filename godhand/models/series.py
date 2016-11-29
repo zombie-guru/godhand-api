@@ -8,7 +8,6 @@ from couchdb.mapping import ListField
 from couchdb.mapping import Mapping
 from couchdb.mapping import TextField
 from couchdb.mapping import ViewField
-import couchdb.http
 
 from .volume import Volume
 
@@ -228,27 +227,21 @@ class SeriesReaderProgress(Document):
     @classmethod
     def retrieve_for_user(cls, db, user_id, series_id=None, limit=50):
         if series_id:
-            try:
-                return cls.by_series(
-                    db,
-                    startkey=[user_id, series_id, {}],
-                    endkey=[user_id, series_id, None],
-                    descending=True,
-                    limit=limit,
-                ).rows
-            except couchdb.http.ResourceNotFound:
-                return []
+            return cls.by_series(
+                db,
+                startkey=[user_id, series_id, {}],
+                endkey=[user_id, series_id, None],
+                descending=True,
+                limit=limit,
+            ).rows
         else:
-            try:
-                return cls.by_last_read(
-                    db,
-                    startkey=[user_id, {}],
-                    endkey=[user_id, None],
-                    descending=True,
-                    limit=limit,
-                ).rows
-            except couchdb.http.ResourceNotFound:
-                return []
+            return cls.by_last_read(
+                db,
+                startkey=[user_id, {}],
+                endkey=[user_id, None],
+                descending=True,
+                limit=limit,
+            ).rows
 
     by_series = ViewField('progress_by_series', '''
     function(doc) {
