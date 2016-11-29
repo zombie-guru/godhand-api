@@ -63,7 +63,6 @@ def upload(couchdb_url=None, lines=None):
         db.update(batch)
     Series.by_attribute.sync(db)
     Volume.by_series.sync(db)
-    Volume.summary_by_series.sync(db)
 
 
 def update_user(couchdb_url, user, groups):

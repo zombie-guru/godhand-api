@@ -92,51 +92,37 @@ class Volume(Document):
             raise
         finally:
             cls.by_series.sync(db)
-            cls.summary_by_series.sync(db)
             cls.user_usage.sync(db)
 
     @classmethod
-    def get_series_volume(cls, db, series_id, index):
+    def get_series_volume(cls, db, series_id, index, owner_id):
         """ Get a volume by series and index offset.
 
         Return None if does not exist or the volume object.
         """
-        view = cls.by_series(
+        return cls.query(
             db,
-            startkey=[series_id, None],
-            endkey=[series_id, {}],
+            owner_id=owner_id,
+            series_id=series_id,
             skip=index,
-            limit=1,
-        )
-        return view.rows[0]
-
-    @classmethod
-    def collection_for_series(cls, db, series_id, language=None):
-        key = []
-        if language:
-            key.append('language:{}'.format(language))
-        key.append('series:{}'.format(series_id))
-        return cls.summary_by_series(db, startkey=key, endkey=key + [{}])
+            total=1,
+        ).rows[0]
 
     @classmethod
     def reprocess_all_images(cls, db, min_width, min_height):
-        for volume in cls.by_series(db):
+        for volume in cls.iterall(db):
             volume.reprocess_images(db, min_width, min_height)
 
-    @classmethod
-    def get_user_usage(cls, db, user_id):
-        rows = cls.user_usage(db, key=[user_id])
-        return sum(map(lambda x: x['value'], rows))
-
-    def get_next_volume(self, db):
-        view = self.by_series(
+    def get_next_volume(self, db, owner_id):
+        rows = self.query(
             db,
-            start_key=[self.series_id, self.volume_number + 1],
-            end_key=[self.series_id, {}],
-            limit=1,
-        )
+            series_id=self.series_id,
+            min_volume_number=self.volume_number + 1,
+            owner_id=owner_id,
+            total=1,
+        ).rows
         try:
-            return view.rows[0]
+            return rows[0]
         except IndexError:
             return None
 
@@ -167,7 +153,6 @@ class Volume(Document):
             current_series.update_volume_meta(db, self)
         self.store(db)
         self.by_series.sync(db)
-        self.summary_by_series.sync(db)
         Series.by_attribute.sync(db)
         return self
 
@@ -181,7 +166,6 @@ class Volume(Document):
 
         db.delete_attachment(self, filename)
         self.by_series.sync(db)
-        self.summary_by_series.sync(db)
 
     def delete(self, db):
         from .series import Series
@@ -189,7 +173,6 @@ class Volume(Document):
         series.delete_volume(db, self)
         db.delete(self)
         self.by_series.sync(db)
-        self.summary_by_series.sync(db)
 
     class_ = TextField('@class', default='Volume')
     filename = TextField()
@@ -208,22 +191,53 @@ class Volume(Document):
     by_series = ViewField('volume_by_series', '''
     function(doc) {
         if (doc['@class'] === 'Volume') {
-            emit([doc.series_id, doc.volume_number], doc);
+            emit([
+                0,
+                doc.owner_id,
+                doc.language,
+                doc.series_id,
+                doc.volume_number,
+            ],
+            doc);
+
+            emit([
+                1,
+                doc.owner_id,
+                doc.series_id,
+                doc.volume_number,
+            ],
+            doc);
         }
     }
     ''')
 
-    summary_by_series = ViewField('summary_by_series', '''
-    function(doc) {
-        if (doc['@class'] == 'Volume') {
-            var sKey = 'series:' + doc.series_id;
-            var lKey = 'language:' + doc.language;
-            var nKey = 'language:' + doc.volume_number;
-            emit([sKey, nKey], doc);
-            emit([lKey, sKey, nKey], doc);
-        }
-    }
-    ''')
+    @classmethod
+    def query(
+            cls, db, owner_id, *,
+            min_volume_number=None,
+            language=None, series_id=None, skip=0, total=100):
+        if isinstance(min_volume_number, int) and not series_id:
+            raise ValueError('series_id required with min_volume_number')
+
+        if language:
+            startkey = [0, owner_id, language]
+        else:
+            startkey = [1, owner_id]
+        if series_id:
+            startkey += [series_id]
+        if min_volume_number is not None:
+            startkey += [min_volume_number]
+        return cls.by_series(
+            db,
+            startkey=startkey,
+            endkey=startkey + [{}],
+            skip=skip,
+            total=total,
+        )
+
+    @classmethod
+    def iterall(cls, db):
+        return cls.by_series(db, startkey=[1], endkey=[1, {}])
 
     user_usage = ViewField('user_usage', '''
     function(doc) {
@@ -238,6 +252,11 @@ class Volume(Document):
         }
     }
     ''', '_sum', wrapper=lambda x: x)
+
+    @classmethod
+    def get_user_usage(cls, db, user_id):
+        rows = cls.user_usage(db, key=[user_id])
+        return sum(map(lambda x: x['value'], rows))
 
     def get_max_spread(self, page_number):
         left_page = self.pages[page_number]

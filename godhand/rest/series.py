@@ -172,7 +172,8 @@ def get_series_volume(request):
     v = request.validated
     try:
         volume = Volume.get_series_volume(
-            request.registry['godhand:db'], v['series'].id, v['n_volume'])
+            request.registry['godhand:db'], v['series'].id, v['n_volume'],
+            owner_id=request.authenticated_userid)
     except IndexError:
         raise HTTPNotFound()
     result = volume.as_dict()
@@ -187,7 +188,8 @@ def get_series_cover(request):
     v = request.validated
     try:
         volume = Volume.get_series_volume(
-            request.registry['godhand:db'], v['series'].id, 0)
+            request.registry['godhand:db'], v['series'].id, 0,
+            request.authenticated_userid)
     except IndexError:
         raise HTTPNotFound()
     attachment = request.registry['godhand:db'].get_attachment(
@@ -207,7 +209,10 @@ def get_series_volume_page(request):
     v = request.validated
     try:
         volume = Volume.get_series_volume(
-            request.registry['godhand:db'], v['series'].id, v['n_volume'])
+            request.registry['godhand:db'],
+            series_id=v['series'].id,
+            index=v['n_volume'],
+            owner_id=request.authenticated_userid)
     except IndexError:
         raise HTTPNotFound()
 

@@ -70,7 +70,7 @@ def get_volume(request):
             'volume_file', volume=volume['id'], filename=page['filename'])
 
     next_volume = request.validated['volume'].get_next_volume(
-        request.registry['godhand:db'])
+        request.registry['godhand:db'], owner_id=request.authenticated_userid)
     volume['next'] = None
     if next_volume:
         volume['next'] = next_volume.as_dict(short=True)

@@ -130,8 +130,8 @@ class Series(Document):
         """
         progress = SeriesReaderProgress.retrieve_for_user(db, user_id, self.id)
         progress = {x.volume_id: x.as_dict()for x in progress}
-        volumes = Volume.collection_for_series(
-            db, series_id=self.id, language=language)
+        volumes = Volume.query(
+            db, owner_id=user_id, series_id=self.id, language=language)
         volumes = [
             dict(
                 x.as_dict(short=True),
