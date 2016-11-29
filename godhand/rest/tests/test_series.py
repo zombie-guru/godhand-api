@@ -5,11 +5,11 @@ from PIL import Image
 
 from godhand.tests.fakevolumes import CbtFile
 from godhand.tests.fakevolumes import CbzFile
-from .utils import WriteUserLoggedInTest
+from .utils import UserLoggedInTest
 from .utils import tmp_cbt
 
 
-class TestEmpty(WriteUserLoggedInTest):
+class TestEmpty(UserLoggedInTest):
     def test_get_missing(self):
         self.api.get('/series/missing', status=400)
 
@@ -68,7 +68,7 @@ class TestEmpty(WriteUserLoggedInTest):
         self.assertEquals(expected, response)
 
 
-class SingleSeriesTest(WriteUserLoggedInTest):
+class SingleSeriesTest(UserLoggedInTest):
     def setUp(self):
         super(SingleSeriesTest, self).setUp()
         response = self.api.post_json(

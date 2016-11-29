@@ -30,7 +30,6 @@ volume = GodhandService(
 volume_cover = GodhandService(
     name='volume_cover',
     path='/volumes/{volume}/cover.jpg',
-    permission='view'
 )
 volume_page = GodhandService(
     name='volume_page',
@@ -47,13 +46,10 @@ volume_reader_progress = GodhandService(
 reprocess_images = GodhandService(
     name='reprocess_images',
     path='/reprocess_images',
-    permission='admin'
 )
 
 
-@volume.get(
-    permission='view',
-)
+@volume.get()
 def get_volume(request):
     """ Get a volume by ID.
 
@@ -89,10 +85,7 @@ class PutVolumeSchema(VolumePathSchema):
         co.String(), missing=None, validator=language_validator)
 
 
-@volume.put(
-    schema=PutVolumeSchema,
-    permission='view',
-)
+@volume.put(schema=PutVolumeSchema)
 def update_volume_meta(request):
     """ Update volume metadata.
     """
@@ -107,7 +100,7 @@ def update_volume_meta(request):
         db, series=series, **{k: request.validated[k] for k in keys})
 
 
-@volume.delete(permission='write')
+@volume.delete()
 def delete_volume(request):
     request.validated['volume'].delete(request.registry['godhand:db'])
 
@@ -129,7 +122,7 @@ def get_volume_cover(request):
     return response
 
 
-@volume_page.get(permission='view', schema=VolumePagePathSchema)
+@volume_page.get(schema=VolumePagePathSchema)
 def get_volume_page(request):
     """ Get a volume page.
     """
@@ -156,10 +149,7 @@ class VolumeFileSchema(VolumePathSchema):
     filename = co.SchemaNode(co.String(), location='path')
 
 
-@volume_file.get(
-    permission='view',
-    schema=VolumeFileSchema,
-)
+@volume_file.get(schema=VolumeFileSchema)
 def get_volume_file(request):
     attachment = request.registry['godhand:db'].get_attachment(
         request.validated['volume'].id,
@@ -172,10 +162,7 @@ def get_volume_file(request):
     return response
 
 
-@volume_file.delete(
-    permission='write',
-    schema=VolumeFileSchema,
-)
+@volume_file.delete(schema=VolumeFileSchema)
 def delete_volume_file(request):
     request.validated['volume'].delete_file(
         request.registry['godhand:db'], request.validated['filename'])
@@ -185,10 +172,7 @@ class StoreReaderProgressSchema(VolumePathSchema):
     page_number = co.SchemaNode(co.Integer(), validator=co.Range(min=0))
 
 
-@volume_reader_progress.put(
-    permission='view',
-    schema=StoreReaderProgressSchema,
-)
+@volume_reader_progress.put(schema=StoreReaderProgressSchema)
 def store_reader_progress(request):
     v = request.validated
     SeriesReaderProgress.save_for_user(

@@ -1,7 +1,7 @@
-from .utils import WriteUserLoggedInTest
+from .utils import UserLoggedInTest
 
 
-class TestSettings(WriteUserLoggedInTest):
+class TestSettings(UserLoggedInTest):
     def test_get_default(self):
         expected = {
             'user_id': self.user_id,
@@ -22,11 +22,7 @@ class TestSettings(WriteUserLoggedInTest):
 
         expected = {
             'needs_authentication': False,
-            'permissions': {
-                'view': True,
-                'write': True,
-                'admin': True,
-            },
+            'subscribed_ids': [],
             'user_id': self.user_id,
             'language': 'jpn',
         }
@@ -44,11 +40,7 @@ class TestSettings(WriteUserLoggedInTest):
 
         expected = {
             'needs_authentication': False,
-            'permissions': {
-                'view': True,
-                'write': True,
-                'admin': True,
-            },
+            'subscribed_ids': [],
             'user_id': self.user_id,
             'language': None,
         }

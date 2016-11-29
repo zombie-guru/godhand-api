@@ -60,7 +60,6 @@ def setup_acl(config, secret):
     config.set_authentication_policy(AuthTktAuthenticationPolicy(
         secret, callback=groupfinder, hashalg='sha512'))
     config.set_session_factory(SignedCookieSessionFactory(secret))
-    config.set_default_permission('admin')
 
 
 def has_permission(request, permission, context=None):

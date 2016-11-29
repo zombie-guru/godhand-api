@@ -20,9 +20,7 @@ reader_progress = GodhandService(
 )
 
 
-@reader_progress.get(
-    permission='view',
-)
+@reader_progress.get()
 def get_reader_progress(request):
     """ Get latest progress for each series.
     """

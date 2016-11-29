@@ -29,7 +29,7 @@ class UserSettings(Document):
 
     @classmethod
     def get_subscribed_owner_ids(cls, db, subscriber_id):
-        return cls.owner_by_subscriber(db, key=[subscriber_id])
+        return cls.owner_by_subscriber(db, key=[subscriber_id]).rows
 
     def add_subscriber(self, db, subscriber_id):
         if subscriber_id not in self.subscribers:

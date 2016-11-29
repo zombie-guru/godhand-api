@@ -8,22 +8,18 @@ from .utils import language_validator
 settings = GodhandService(
     name='settings',
     path='/settings',
-    permission='view'
 )
 subscribers = GodhandService(
     name='account subscribers',
     path='/account/subscribers',
-    permission='authenticate',
 )
 subscriber = GodhandService(
     name='account subscriber',
     path='/account/subscribers/{subscriber}',
-    permission='authenticate',
 )
 subscribed = GodhandService(
     name='account subscribed',
     path='/account/subscribed',
-    permission='authenticate',
 )
 
 

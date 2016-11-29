@@ -107,21 +107,11 @@ class ApiTest(unittest.TestCase):
                 )
 
 
-class RootLoggedInTest(ApiTest):
-    def setUp(self):
-        super(RootLoggedInTest, self).setUp()
-        self.oauth2_login(self.root_email)
-
-
-class WriteUserLoggedInTest(ApiTest):
+class UserLoggedInTest(ApiTest):
     user_id = 'write@company.com'
 
     def setUp(self):
-        super(WriteUserLoggedInTest, self).setUp()
-        self.oauth2_login(self.root_email)
-        self.api.put_json(
-            '/users/{}'.format(self.user_id), {'groups': ['admin']})
-        self.api.post('/logout')
+        super(UserLoggedInTest, self).setUp()
         self.oauth2_login(self.user_id)
 
 

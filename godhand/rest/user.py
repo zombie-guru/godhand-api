@@ -6,13 +6,11 @@ from .utils import GodhandService
 user = GodhandService(
     name='user-info',
     path='/user',
-    permission='authenticate',
 )
 
 user_usage = GodhandService(
     name='user_usage',
     path='/user/usage',
-    permission='authenticate',
 )
 
 
@@ -26,10 +24,8 @@ def get_user_info(request):
     auth_disabled = request.registry['godhand:cfg'].disable_auth
     return {
         'needs_authentication': not auth_disabled and not logged_in,
-        'permissions': {
-            k: bool(request.has_permission(k))
-            for k in ('view', 'write', 'admin')
-        },
+        'subscribed_ids': UserSettings.get_subscribed_owner_ids(
+            request.registry['godhand:db'], request.authenticated_userid),
         'user_id': request.authenticated_userid,
         'language': settings.language if settings else None,
     }

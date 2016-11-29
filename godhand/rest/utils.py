@@ -2,8 +2,6 @@ from functools import partial
 
 from cornice import Service
 from pyramid.security import Allow
-from pyramid.security import Deny
-from pyramid.security import Everyone
 import colander as co
 import pycountry
 
@@ -24,17 +22,7 @@ def groupfinder(userid, request):
     ] + ['group:{}'.format(x) for x in user.groups]
 
 
-def default_acl(request):
-    return [
-        (Allow, 'group:user', ('view',)),
-        (Allow, 'group:admin', ('write', 'view', 'admin')),
-        (Allow, 'group:root', ('write', 'view', 'admin')),
-        (Allow, Everyone, ('authenticate',)),
-        (Deny, Everyone, ('admin', 'view', 'write')),
-    ]
-
-
-GodhandService = partial(Service, acl=default_acl, permission='view')
+GodhandService = partial(Service)
 
 
 def query_owner_acl(request):

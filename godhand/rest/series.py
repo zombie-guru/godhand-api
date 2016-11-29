@@ -57,7 +57,7 @@ class GetSeriesCollectionSchema(co.MappingSchema):
     )
 
 
-@series_collection.get(permission='view', schema=GetSeriesCollectionSchema)
+@series_collection.get(schema=GetSeriesCollectionSchema)
 def get_series_collection(request):
     db = request.registry['godhand:db']
     try:
@@ -79,10 +79,7 @@ class PostSeriesCollectionSchema(co.MappingSchema):
         genre = co.SchemaNode(co.String())
 
 
-@series_collection.post(
-    schema=PostSeriesCollectionSchema,
-    permission='write',
-)
+@series_collection.post(schema=PostSeriesCollectionSchema)
 def create_series(request):
     """ Create a series.
 
@@ -119,7 +116,7 @@ class GetSeriesSchema(SeriesPathSchema):
     )
 
 
-@series.get(schema=GetSeriesSchema, permission='view')
+@series.get(schema=GetSeriesSchema)
 def get_series(request):
     """ Get a series by key.
     """
@@ -135,7 +132,6 @@ def get_series(request):
 @series_volumes.post(
     schema=SeriesPathSchema,
     content_type=('multipart/form-data',),
-    permission='write',
 )
 def upload_volume(request):
     """ Create volume and return unique ids.
@@ -158,10 +154,7 @@ def upload_volume(request):
     return {'volumes': volume_ids}
 
 
-@series_volumes.get(
-    schema=SeriesPathSchema,
-    permission='view',
-)
+@series_volumes.get(schema=SeriesPathSchema)
 def get_series_volumes(request):
     series = request.validated['series']
     return {
@@ -172,10 +165,7 @@ def get_series_volumes(request):
     }
 
 
-@series_volume.get(
-    schema=SeriesVolumePathSchema,
-    permission='view',
-)
+@series_volume.get(schema=SeriesVolumePathSchema)
 def get_series_volume(request):
     """ Get a series volume by index.
     """
@@ -192,10 +182,7 @@ def get_series_volume(request):
     return result
 
 
-@series_cover.get(
-    schema=SeriesPathSchema,
-    permission='view',
-)
+@series_cover.get(schema=SeriesPathSchema)
 def get_series_cover(request):
     v = request.validated
     try:
@@ -213,10 +200,7 @@ def get_series_cover(request):
     return response
 
 
-@series_volume_page.get(
-    schema=SeriesVolumePagePathSchema,
-    permission='view',
-)
+@series_volume_page.get(schema=SeriesVolumePagePathSchema)
 def get_series_volume_page(request):
     """ Get a volume page by offset.
     """
@@ -251,10 +235,7 @@ class SetSeriesCoverPageSchema(SeriesPathSchema):
         co.Integer(), location='body', validator=co.Range(min=0))
 
 
-@series_reader_progress.get(
-    schema=SeriesPathSchema,
-    permission='view',
-)
+@series_reader_progress.get(schema=SeriesPathSchema)
 def get_reader_progress(request):
     items = SeriesReaderProgress.retrieve_for_user(
         db=request.registry['godhand:db'],
