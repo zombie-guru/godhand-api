@@ -54,7 +54,6 @@ class Volume(Document):
 
     @classmethod
     def sync(cls, db):
-        cls.by_series.sync(db)
         cls.by_series_language.sync(db)
         cls.filesize_sum_by_owner_id.sync(db)
 
@@ -160,7 +159,7 @@ class Volume(Document):
         else:
             current_series.update_volume_meta(db, self)
         self.store(db)
-        self.by_series.sync(db)
+        self.sync(db)
         Series.by_attribute.sync(db)
         return self
 
@@ -173,25 +172,14 @@ class Volume(Document):
         Series.by_attribute.sync(db)
 
         db.delete_attachment(self, filename)
-        self.by_series.sync(db)
+        self.sync(db)
 
     def delete(self, db):
         from .series import Series
         series = Series.load(db, self.series_id)
         series.delete_volume(db, self)
         db.delete(self)
-        self.by_series.sync(db)
-
-    by_series = ViewField('volumes-by-series', '''
-    function(doc) {
-        if (doc['@class'] === 'Volume') {
-            emit(
-                [doc.series_id, doc.volume_number],
-                {_id: doc.id}
-            );
-        }
-    }
-    ''')
+        self.sync(db)
 
     by_series_language = ViewField('volumes-by-series-language', '''
     function(doc) {
@@ -209,21 +197,15 @@ class Volume(Document):
         if language and not series_id:
             raise ValueError('series_id must be provided with language')
 
-        if series_id and language:
-            return cls.by_series_language(
-                db,
-                startkey=[series_id, language],
-                endkey=[series_id, language, {}],
-                include_docs=include_docs,
-            )
-        elif series_id:
-            return cls.by_series(
-                db,
-                startkey=[series_id],
-                endkey=[series_id, {}],
-                include_docs=include_docs,
-            )
-        return cls.by_series(db, include_docs=include_docs)
+        startkey = [series_id]
+        if language:
+            startkey.append(language)
+        return cls.by_series_language(
+            db,
+            startkey=startkey,
+            endkey=startkey + [{}],
+            include_docs=include_docs,
+        )
 
     filesize_sum_by_owner_id = ViewField('volume-filesize-sum-by-owner-id', '''
     function(doc) {
