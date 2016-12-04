@@ -3,7 +3,6 @@ from pyramid.exceptions import HTTPForbidden
 import colander as co
 
 from ..models import Series
-from ..models import VolumeCollection
 from ..models import Volume
 from .utils import GodhandService
 from .utils import ValidatedSeries
@@ -153,7 +152,7 @@ def get_user_series_collection(request):
         # TODO: support subscribers
         raise HTTPForbidden('User not allowed access to collection.')
 
-    rows = VolumeCollection.query(
+    rows = Series.query(
         request.registry['godhand:db'],
         owner_id=request.validated['user'],
     )

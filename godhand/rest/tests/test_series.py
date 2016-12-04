@@ -83,7 +83,7 @@ class TestSingleSeriesTest(SingleSeriesTest):
 
         self.assertIsNotNone(response.pop('id'))
 
-        expected = 'VolumeCollection:{}:{}'.format(
+        expected = '{}:{}'.format(
             self.series_id, self.user_id)
         self.assertEquals(expected, response.pop('series_id'))
 

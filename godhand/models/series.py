@@ -10,13 +10,25 @@ from couchdb.mapping import ViewField
 from .utils import GodhandDocument
 
 
-class SeriesBase(GodhandDocument):
+class Series(GodhandDocument):
+    """ Represents a collection of Volume objects.
+
+    # Owner
+    if ``owner_id`` is set, that means it belongs to a user. This has the
+    property that.
+
+    1. It should be uploadable but only by the owner.
+    2. Owner can edit meta data fo this series.
+
+    """
+    class_ = TextField('@class', default='Series')
     name = TextField()
     description = TextField()
     author = TextField()
     magazine = TextField()
     number_of_volumes = IntegerField()
     genres = ListField(TextField())
+    owner_id = TextField(default='root')
 
     def as_dict(self):
         return {
@@ -29,12 +41,9 @@ class SeriesBase(GodhandDocument):
             'number_of_volumes': self.number_of_volumes,
         }
 
-    def add_volume(self, db, owner_id, volume):
-        raise NotImplementedError()
-
-
-class Series(SeriesBase):
-    class_ = TextField('@class', default='Series')
+    @classmethod
+    def sync(cls, db):
+        cls.by_owner_name.sync(db)
 
     @classmethod
     def create(cls, db, *, id=None, **kws):
@@ -42,74 +51,44 @@ class Series(SeriesBase):
             id = cls.generate_id()
         doc = cls(id=id, **kws)
         doc.store(db)
-        Series.by_name.sync(db)
+        cls.sync(db)
         return doc
 
-    by_name = ViewField('series-by-name', '''
+    by_owner_name = ViewField('series-by-name', '''
     function(doc) {
         if (doc['@class'] === 'Series') {
-            emit([0, doc.name.toLowerCase()], {_id: doc.id});
+            emit([doc.owner_id, doc.name.toLowerCase()], {_id: doc.id});
         }
     }
     ''')
 
     @classmethod
-    def query(cls, db, name_q=None, include_docs=True):
+    def query(cls, db, owner_id='root', name_q=None, include_docs=True):
         if name_q:
-            startkey = [0, name_q.lower()]
-            endkey = [0, name_q.lower() + cls.MAX_STRING]
+            startkey = [owner_id, name_q.lower()]
+            endkey = [owner_id, name_q.lower() + cls.MAX_STRING]
         else:
-            startkey = [0]
-            endkey = [0, {}]
-        return cls.by_name(
+            startkey = [owner_id]
+            endkey = [owner_id, {}]
+        return cls.by_owner_name(
             db, startkey=startkey, endkey=endkey, include_docs=include_docs)
 
-    def add_volume(self, db, owner_id, volume):
-        collection = VolumeCollection.from_series(db, self, owner_id)
-        collection.add_volume(db, owner_id, volume)
+    def _key(self, owner_id):
+        return '{}:{}'.format(self.id, owner_id)
 
-
-class VolumeCollection(SeriesBase):
-    class_ = TextField('@class', default='VolumeCollection')
-    owner_id = TextField()
-
-    @classmethod
-    def from_series(cls, db, series, owner_id):
-        key = 'VolumeCollection:{}:{}'.format(series.id, owner_id)
-        instance = cls.load(db, key)
-        if not instance:
-            instance = cls(
-                id=key,
-                name=series.name,
-                description=series.description,
-                author=series.author,
-                magazine=series.magazine,
-                number_of_volumes=series.number_of_volumes,
-                genres=series.genres,
-                owner_id=owner_id,
-            )
+    def retrieve_owner_instance(self, db, owner_id):
+        if self.owner_id != owner_id:
+            key = self._key(owner_id)
+            db.copy(self.id, key)
+            instance = Series.load(db, key)
+            instance.owner_id = owner_id
             instance.store(db)
-        return instance
-
-    by_owner_name = ViewField('volume-collections-by-owner-name', '''
-    function(doc) {
-        if (doc['@class'] === 'VolumeCollection') {
-            emit([doc.owner_id, doc.name], {_id: doc.id});
-        }
-    }
-    ''')
-
-    @classmethod
-    def query(cls, db, owner_id, include_docs=True):
-        return cls.by_owner_name(
-            db,
-            startkey=[owner_id],
-            endkey=[owner_id, {}],
-            include_docs=include_docs,
-        )
+            return instance
+        return self
 
     def add_volume(self, db, owner_id, volume):
-        volume.set_volume_collection(db, self)
+        instance = self.retrieve_owner_instance(db, owner_id)
+        volume.set_volume_collection(db, instance)
 
 
 class SeriesReaderProgress(Document):
