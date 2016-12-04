@@ -38,6 +38,26 @@ def resized_image(filename, min_width=320, min_height=300):
 
 
 class Volume(Document):
+    class_ = TextField('@class', default='Volume')
+    filename = TextField()
+    volume_number = IntegerField()
+    language = TextField()
+    series_id = TextField()
+    owner_id = TextField()
+    pages = ListField(DictField(Mapping.build(
+        filename=TextField(),
+        width=IntegerField(),
+        height=IntegerField(),
+        filesize=IntegerField(),
+        orientation=TextField(),
+    )))
+
+    @classmethod
+    def sync(cls, db):
+        cls.by_series.sync(db)
+        cls.by_series_language.sync(db)
+        cls.filesize_sum_by_owner_id.sync(db)
+
     @classmethod
     def from_archieve(cls, db, owner_id, filename, fd):
         from PIL import Image
@@ -90,26 +110,11 @@ class Volume(Document):
             db.delete(doc)
             raise
         finally:
-            cls.by_series.sync(db)
-            cls.user_usage.sync(db)
-
-    @classmethod
-    def get_series_volume(cls, db, series_id, index, owner_id):
-        """ Get a volume by series and index offset.
-
-        Return None if does not exist or the volume object.
-        """
-        return cls.query(
-            db,
-            owner_id=owner_id,
-            series_id=series_id,
-            skip=index,
-            total=1,
-        ).rows[0]
+            cls.sync(db)
 
     @classmethod
     def reprocess_all_images(cls, db, min_width, min_height):
-        for volume in cls.iterall(db):
+        for volume in cls.query(db):
             volume.reprocess_images(db, min_width, min_height)
 
     def set_volume_collection(self, db, collection):
@@ -177,72 +182,50 @@ class Volume(Document):
         db.delete(self)
         self.by_series.sync(db)
 
-    class_ = TextField('@class', default='Volume')
-    filename = TextField()
-    volume_number = IntegerField()
-    language = TextField()
-    series_id = TextField()
-    owner_id = TextField()
-    pages = ListField(DictField(Mapping.build(
-        filename=TextField(),
-        width=IntegerField(),
-        height=IntegerField(),
-        filesize=IntegerField(),
-        orientation=TextField(),
-    )))
-
-    by_series = ViewField('volume_by_series', '''
+    by_series = ViewField('volumes-by-series', '''
     function(doc) {
         if (doc['@class'] === 'Volume') {
-            emit([
-                0,
-                doc.owner_id,
-                doc.language,
-                doc.series_id,
-                doc.volume_number,
-            ],
-            doc);
+            emit(
+                [doc.series_id, doc.volume_number],
+                {_id: doc.id}
+            );
+        }
+    }
+    ''')
 
-            emit([
-                1,
-                doc.owner_id,
-                doc.series_id,
-                doc.volume_number,
-            ],
-            doc);
+    by_series_language = ViewField('volumes-by-series-language', '''
+    function(doc) {
+        if (doc['@class'] === 'Volume') {
+            emit(
+                [doc.series_id, doc.language, doc.volume_number],
+                {_id: doc.id}
+            );
         }
     }
     ''')
 
     @classmethod
-    def query(
-            cls, db, owner_id, *,
-            min_volume_number=None,
-            language=None, series_id=None, skip=0, total=100):
-        if isinstance(min_volume_number, int) and not series_id:
-            raise ValueError('series_id required with min_volume_number')
+    def query(cls, db, series_id=None, language=None, include_docs=True):
+        if language and not series_id:
+            raise ValueError('series_id must be provided with language')
 
-        if language:
-            startkey = [0, owner_id, language]
-        else:
-            startkey = [1, owner_id]
-        if series_id:
-            startkey += [series_id]
-        if min_volume_number is not None:
-            startkey += [min_volume_number]
-        return cls.by_series(
-            db,
-            startkey=startkey,
-            endkey=startkey + [{}],
-            skip=skip,
-            total=total,
-        )
+        if series_id and language:
+            return cls.by_series_language(
+                db,
+                startkey=[series_id, language],
+                endkey=[series_id, language, {}],
+                include_docs=include_docs,
+            )
+        elif series_id:
+            return cls.by_series(
+                db,
+                startkey=[series_id],
+                endkey=[series_id, {}],
+                include_docs=include_docs,
+            )
+        return cls.by_series(db, include_docs=include_docs)
 
-    @classmethod
-    def iterall(cls, db):
-        return cls.by_series(db, startkey=[1], endkey=[1, {}])
-
-    user_usage = ViewField('user_usage', '''
+    filesize_sum_by_owner_id = ViewField('volume-filesize-sum-by-owner-id', '''
     function(doc) {
         if (doc['@class'] == 'Volume') {
             var filesize = 0;
@@ -258,7 +241,7 @@ class Volume(Document):
 
     @classmethod
     def get_user_usage(cls, db, user_id):
-        rows = cls.user_usage(db, key=[user_id])
+        rows = cls.filesize_sum_by_owner_id(db, key=[user_id])
         return sum(map(lambda x: x['value'], rows))
 
     def get_max_spread(self, page_number):

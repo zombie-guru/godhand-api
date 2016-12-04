@@ -50,6 +50,10 @@ class SingleSeriesTest(SeriesTest):
     def expected_series(self):
         return dict(self.example_series, id=self.series_id)
 
+    @property
+    def expected_series_full(self):
+        return dict(self.expected_series, volumes=[])
+
 
 class TestSingleSeriesTest(SingleSeriesTest):
     def test_get_collection(self):
@@ -68,7 +72,7 @@ class TestSingleSeriesTest(SingleSeriesTest):
         self.assertEquals(expected, response)
 
     def test_get_series(self):
-        expected = self.expected_series
+        expected = self.expected_series_full
         response = self.api.get('/series/{}'.format(self.series_id)).json_body
         self.assertEquals(expected, response)
 
@@ -124,7 +128,17 @@ class SingleVolumeTest(SingleSeriesTest):
             'filename': 'volume-007.cbt',
             'language': None,
             'volume_number': 7,
-            'pages': self.expected_volume.expected_pages,
+            'pages': self.example_volume.expected_pages,
+        }
+
+    @property
+    def expected_volume_short(self):
+        return {
+            'id': self.volume_id,
+            'filename': 'volume-007.cbt',
+            'language': None,
+            'volume_number': 7,
+            'pages': len(self.example_volume.expected_pages),
         }
 
     @property
@@ -132,6 +146,13 @@ class SingleVolumeTest(SingleSeriesTest):
         return dict(
             self.expected_series,
             id=self.user_series_id,
+        )
+
+    @property
+    def expected_user_series_full(self):
+        return dict(
+            self.expected_user_series,
+            volumes=[self.expected_volume_short],
         )
 
     def test_get_collection(self):
@@ -158,3 +179,14 @@ class SingleVolumeTest(SingleSeriesTest):
 
     def test_get_user_collection_forbidden(self):
         self.api.get('/users/derp@herp.com/series', status=403)
+
+    def test_get_series(self):
+        expected = self.expected_series_full
+        response = self.api.get('/series/{}'.format(self.series_id)).json_body
+        self.assertEquals(expected, response)
+
+    def test_get_user_series(self):
+        expected = self.expected_user_series_full
+        response = self.api.get(
+            '/series/{}'.format(self.user_series_id)).json_body
+        self.assertEquals(expected, response)

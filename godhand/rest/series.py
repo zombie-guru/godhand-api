@@ -115,8 +115,11 @@ def get_series(request):
         }
     """
     series = request.validated['series']
-    # TODO: add volumes
-    return series.as_dict()
+    volumes = Volume.query(request.registry['godhand:db'], series_id=series.id)
+    return dict(
+        series.as_dict(),
+        volumes=[x.as_dict(short=True) for x in volumes],
+    )
 
 
 @series_volumes.post(content_type='multipart/form-data')
