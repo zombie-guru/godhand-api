@@ -61,7 +61,7 @@ def upload(couchdb_url=None, lines=None):
         if len(batch) == 0:
             break
         db.update(batch)
-    Series.by_attribute.sync(db)
+    Series.by_name.sync(db)
     Volume.by_series.sync(db)
 
 

@@ -2,179 +2,21 @@ from datetime import datetime
 
 from couchdb.mapping import DateTimeField
 from couchdb.mapping import Document
-from couchdb.mapping import DictField
 from couchdb.mapping import IntegerField
 from couchdb.mapping import ListField
-from couchdb.mapping import Mapping
 from couchdb.mapping import TextField
 from couchdb.mapping import ViewField
 
-from .volume import Volume
+from .utils import GodhandDocument
 
 
-class Series(Document):
-    class_ = TextField('@class', default='Series')
+class SeriesBase(GodhandDocument):
     name = TextField()
     description = TextField()
     author = TextField()
     magazine = TextField()
     number_of_volumes = IntegerField()
     genres = ListField(TextField())
-    cover_page = DictField(Mapping.build(
-        volume_id=TextField(),
-        page_number=IntegerField(),
-    ))
-    volumes_meta = ListField(DictField(Mapping.build(
-        id=TextField(),
-        language=TextField(),
-        volume_number=IntegerField(),
-    )))
-
-    by_owner = ViewField('by_owner', '''
-    function(doc) {
-        if (doc['@class'] == 'Series')
-    }
-    ''')
-
-    by_attribute = ViewField('by_attribute', '''
-    function(doc) {
-        if (doc['@class'] === 'Series') {
-            var name = doc.name.toLowerCase();
-            var hasVolumes = doc.volumes_meta.length > 0;
-            emit([null, 'name:' + name], doc);
-            emit([hasVolumes, 'name:' + name], doc);
-
-            const languages = doc.volumes_meta
-                .map(function(meta){
-                    return meta.language;
-                })
-                .filter(function(value){
-                    return !!value;
-                })
-                .reduce(function(agg, value) {
-                    agg[value] = true;
-                    return agg
-                }, {});
-
-            for (var language in languages) {
-                emit(['lang:' + language, 'name:' + name], doc);
-            }
-
-            doc.genres.map(function(genre) {
-                genre = genre.toLowerCase();
-                emit([null, 'genre:' + genre, name], doc);
-                emit([hasVolumes, 'genre:' + genre, name], doc);
-            })
-        }
-    }
-    ''')
-
-    @classmethod
-    def create(cls, db, **kws):
-        doc = cls(**kws)
-        doc.store(db)
-        Series.by_attribute.sync(db)
-        return doc
-
-    @classmethod
-    def get_series_for_user(cls, db, user_id):
-        pass
-
-    @classmethod
-    def query(cls, db, genre=None, name=None, include_empty=False,
-              full_match=False, language=None):
-        if genre is not None and name is not None:
-            raise ValueError('Only genre or name can be supplied')
-        kws = {
-            'startkey': [None if include_empty else True],
-            'endkey': [None if include_empty else True],
-            'limit': 50,
-        }
-        if language:
-            kws['startkey'] = ['lang:{}'.format(language)]
-            kws['endkey'] = ['lang:{}'.format(language)]
-        if genre:
-            genre = genre.lower()
-            kws['startkey'].extend(['genre:' + genre, None])
-            if full_match:
-                kws['endkey'].extend(['genre:' + genre, {}])
-            else:
-                kws['endkey'].extend([u'genre:' + genre + u'\ufff0'])
-        elif name:
-            name = name.lower()
-            kws['startkey'].append('name:' + name)
-            if full_match:
-                kws['endkey'].append('name:' + name)
-            else:
-                kws['endkey'].append(u'name:' + name + u'\ufff0')
-        else:
-            kws['startkey'].append('name:')
-            kws['endkey'].append(u'name:\ufff0')
-        return Series.by_attribute(db, **kws)
-
-    def delete_volume(self, db, volume):
-        self.volumes_meta = filter(
-            lambda x: x.id != volume.id,
-            self.volumes_meta)
-        self.store(db)
-        self.by_attribute.sync(db)
-
-    def get_volumes_and_progress(self, db, user_id, language=None):
-        """
-        Mult-sort by the following attributes.
-
-        1. All pages read go last.
-        2. Partially read pages go first.
-        3. Otherwise, sort by volume_number.
-        """
-        progress = SeriesReaderProgress.retrieve_for_user(db, user_id, self.id)
-        progress = {x.volume_id: x.as_dict()for x in progress}
-        volumes = Volume.query(
-            db, owner_id=user_id, series_id=self.id, language=language)
-        volumes = [
-            dict(
-                x.as_dict(short=True),
-                progress=progress.get(x.id, None),
-            )
-            for x in volumes
-        ]
-        volumes.sort(key=lambda x: (
-            x['progress']['page_number'] == x['pages'] - 1
-            if x['progress'] else False,
-            x['progress'] is None,
-            x['volume_number'],
-        ))
-        return volumes
-
-    def move_volume_to(self, db, series, volume):
-        if volume.series_id != self.id:
-            raise ValueError('{} not a volume of {}!'.format(
-                volume.id, self.id))
-        self.volumes_meta = filter(
-            lambda x: x.id != volume.id,
-            self.volumes_meta)
-        series._update_volume_meta(volume)
-        self.store(db)
-        series.store(db)
-
-    def update_volume_meta(self, db, volume):
-        self._update_volume_meta(volume)
-        self.store(db)
-
-    def _update_volume_meta(self, volume):
-        try:
-            _volume = next(filter(
-                lambda x: x.id == volume.id,
-                self.volumes_meta))
-            _volume['id'] = volume.id
-            _volume['language'] = volume.language
-            _volume['volume_number'] = volume.volume_number
-        except StopIteration:
-            self.volumes_meta.append({
-                'id': volume.id,
-                'language': volume.language,
-                'volume_number': volume.volume_number,
-            })
 
     def as_dict(self):
         return {
@@ -183,13 +25,91 @@ class Series(Document):
             'description': self.description,
             'genres': self.genres,
             'author': self.author,
-            'cover_page': {
-                'page_number': self.cover_page.page_number,
-                'volume_id': self.cover_page.volume_id,
-            },
             'magazine': self.magazine,
             'number_of_volumes': self.number_of_volumes,
         }
+
+    def add_volume(self, db, owner_id, volume):
+        raise NotImplementedError()
+
+
+class Series(SeriesBase):
+    class_ = TextField('@class', default='Series')
+
+    @classmethod
+    def create(cls, db, *, id=None, **kws):
+        if not id:
+            id = cls.generate_id()
+        doc = cls(id=id, **kws)
+        doc.store(db)
+        Series.by_name.sync(db)
+        return doc
+
+    by_name = ViewField('series-by-name', '''
+    function(doc) {
+        if (doc['@class'] === 'Series') {
+            emit([0, doc.name.toLowerCase()], {_id: doc.id});
+        }
+    }
+    ''')
+
+    @classmethod
+    def query(cls, db, name_q=None, include_docs=True):
+        if name_q:
+            startkey = [0, name_q.lower()]
+            endkey = [0, name_q.lower() + cls.MAX_STRING]
+        else:
+            startkey = [0]
+            endkey = [0, {}]
+        return cls.by_name(
+            db, startkey=startkey, endkey=endkey, include_docs=include_docs)
+
+    def add_volume(self, db, owner_id, volume):
+        collection = VolumeCollection.from_series(db, self, owner_id)
+        collection.add_volume(db, owner_id, volume)
+
+
+class VolumeCollection(SeriesBase):
+    class_ = TextField('@class', default='VolumeCollection')
+    owner_id = TextField()
+
+    @classmethod
+    def from_series(cls, db, series, owner_id):
+        key = 'VolumeCollection:{}:{}'.format(series.id, owner_id)
+        instance = cls.load(db, key)
+        if not instance:
+            instance = cls(
+                id=key,
+                name=series.name,
+                description=series.description,
+                author=series.author,
+                magazine=series.magazine,
+                number_of_volumes=series.number_of_volumes,
+                genres=series.genres,
+                owner_id=owner_id,
+            )
+            instance.store(db)
+        return instance
+
+    by_owner_name = ViewField('volume-collections-by-owner-name', '''
+    function(doc) {
+        if (doc['@class'] === 'VolumeCollection') {
+            emit([doc.owner_id, doc.name], {_id: doc.id});
+        }
+    }
+    ''')
+
+    @classmethod
+    def query(cls, db, owner_id, include_docs=True):
+        return cls.by_owner_name(
+            db,
+            startkey=[owner_id],
+            endkey=[owner_id, {}],
+            include_docs=include_docs,
+        )
+
+    def add_volume(self, db, owner_id, volume):
+        volume.set_volume_collection(db, self)
 
 
 class SeriesReaderProgress(Document):

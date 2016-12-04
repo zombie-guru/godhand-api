@@ -1,9 +1,11 @@
+from uuid import uuid4
+
 from couchdb.mapping import Document
 
 
 class GodhandDocument(Document):
+    MAX_STRING = u'\ufff0'
+
     @classmethod
-    def _wrap_row(cls, row):
-        wrapped = super(GodhandDocument, cls)._wrap_row(row)
-        wrapped.key = row['key']
-        return wrapped
+    def generate_id(cls):
+        return uuid4().hex

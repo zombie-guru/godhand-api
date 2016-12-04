@@ -39,7 +39,7 @@ def resized_image(filename, min_width=320, min_height=300):
 
 class Volume(Document):
     @classmethod
-    def from_archieve(cls, db, owner_id, filename, fd, series_id):
+    def from_archieve(cls, db, owner_id, filename, fd):
         from PIL import Image
         ext = bookextractor.from_filename(filename)(fd)
         doc = cls(
@@ -47,7 +47,6 @@ class Volume(Document):
             filename=filename,
             volume_number=guess_volume_number(filename),
             pages=[],
-            series_id=series_id,
             owner_id=owner_id,
         )
         doc.store(db)
@@ -112,6 +111,10 @@ class Volume(Document):
     def reprocess_all_images(cls, db, min_width, min_height):
         for volume in cls.iterall(db):
             volume.reprocess_images(db, min_width, min_height)
+
+    def set_volume_collection(self, db, collection):
+        self.series_id = collection.id
+        self.store(db)
 
     def get_next_volume(self, db, owner_id):
         rows = self.query(

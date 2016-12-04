@@ -1,5 +1,6 @@
 from tempfile import NamedTemporaryFile
 import contextlib
+import os
 import tarfile
 import zipfile
 
@@ -21,6 +22,18 @@ class CbtFile(object):
             'orientation': orientation[n % 3],
             'black_pixel': (n, n),
         } for n in range(15)]
+
+    @property
+    def expected_pages(self):
+        return [
+            dict(
+                width=x['width'],
+                height=x['height'],
+                orientation=x['orientation'],
+                filename=os.path.join('original', x['filename']),
+            )
+            for x in self.pages]
+        pass
 
     @contextlib.contextmanager
     def packaged(self):
