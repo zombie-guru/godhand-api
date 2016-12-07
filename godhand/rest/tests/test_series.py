@@ -52,7 +52,7 @@ class SingleSeriesTest(SeriesTest):
 
     @property
     def expected_series_full(self):
-        return dict(self.expected_series, volumes=[])
+        return dict(self.expected_series, volumes=[], bookmarks=[])
 
 
 class TestSingleSeriesTest(SingleSeriesTest):
@@ -153,6 +153,7 @@ class SingleVolumeTest(SingleSeriesTest):
         return dict(
             self.expected_user_series,
             volumes=[self.expected_volume_short],
+            bookmarks=[],
         )
 
     def test_get_collection(self):
@@ -190,3 +191,30 @@ class SingleVolumeTest(SingleSeriesTest):
         response = self.api.get(
             '/series/{}'.format(self.user_series_id)).json_body
         self.assertEquals(expected, response)
+
+    def test_get_series_forbidden(self):
+        self.oauth2_login('derp@herp.com')
+        self.api.get('/series/{}'.format(self.user_series_id), status=403)
+
+    def test_update_bookmark(self):
+        for n_page in range(14):
+            self.api.put_json(
+                '/volumes/{}/bookmark'.format(self.volume_id),
+                {'page_number': n_page},
+            )
+            expected = dict(
+                self.expected_user_series_full,
+                bookmarks=[{
+                    'page_number': n_page,
+                    'volume_id': self.volume_id,
+                    'series_id': self.user_series_id,
+                    'max_spread': 1,
+                    'number_of_pages': 15,
+                    'volume_number': 7,
+                }],
+            )
+            response = self.api.get(
+                '/series/{}'.format(self.user_series_id)).json_body
+            for x in response['bookmarks']:
+                self.assertIsNotNone(x.pop('last_updated'))
+            self.assertEquals(expected, response)

@@ -2,6 +2,7 @@ from pyramid.exceptions import HTTPBadRequest
 from pyramid.exceptions import HTTPForbidden
 import colander as co
 
+from ..models import Bookmark
 from ..models import Series
 from ..models import Volume
 from .utils import GodhandService
@@ -115,10 +116,19 @@ def get_series(request):
         }
     """
     series = request.validated['series']
+
+    if not series.user_can_view(request.authenticated_userid):
+        raise HTTPForbidden('User not allowed access to collection.')
+
     volumes = Volume.query(request.registry['godhand:db'], series_id=series.id)
+    bookmarks = Bookmark.query(
+        request.registry['godhand:db'],
+        request.authenticated_userid,
+        series_id=series.id)
     return dict(
         series.as_dict(),
         volumes=[x.as_dict(short=True) for x in volumes],
+        bookmarks=[x.as_dict() for x in bookmarks]
     )
 
 

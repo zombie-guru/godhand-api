@@ -1,9 +1,9 @@
 from pyramid.httpexceptions import HTTPNotFound
 import colander as co
 
-from ..models.series import SeriesReaderProgress
-from ..models.series import Series
-from ..models.volume import Volume
+from ..models import Bookmark
+from ..models import Series
+from ..models import Volume
 from .utils import GodhandService
 from .utils import ValidatedVolume
 from .utils import language_validator
@@ -39,9 +39,9 @@ volume_file = GodhandService(
     name='volume_file',
     path='/volumes/{volume}/files/{filename:.+}'
 )
-volume_reader_progress = GodhandService(
-    name='volume_reader_progress',
-    path='/volumes/{volume}/reader_progress'
+volume_bookmark = GodhandService(
+    name='volume_bookmark',
+    path='/volumes/{volume}/bookmark'
 )
 reprocess_images = GodhandService(
     name='reprocess_images',
@@ -172,15 +172,13 @@ class StoreReaderProgressSchema(VolumePathSchema):
     page_number = co.SchemaNode(co.Integer(), validator=co.Range(min=0))
 
 
-@volume_reader_progress.put(schema=StoreReaderProgressSchema)
-def store_reader_progress(request):
-    v = request.validated
-    SeriesReaderProgress.save_for_user(
+@volume_bookmark.put(schema=StoreReaderProgressSchema)
+def update_volume_bookmark(request):
+    Bookmark.update(
         db=request.registry['godhand:db'],
-        series_id=v['volume'].series_id,
         user_id=request.authenticated_userid,
-        volume=v['volume'],
-        page_number=v['page_number'],
+        volume=request.validated['volume'],
+        page_number=request.validated['page_number'],
     )
 
 
