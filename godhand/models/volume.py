@@ -120,12 +120,11 @@ class Volume(Document):
         self.series_id = collection.id
         self.store(db)
 
-    def get_next_volume(self, db, owner_id):
+    def get_next_volume(self, db):
         rows = self.query(
             db,
             series_id=self.series_id,
-            min_volume_number=self.volume_number + 1,
-            owner_id=owner_id,
+            start_volume_number=self.volume_number + 1,
             total=1,
         ).rows
         try:
@@ -185,7 +184,7 @@ class Volume(Document):
     function(doc) {
         if (doc['@class'] === 'Volume') {
             emit(
-                [doc.series_id, doc.language, doc.volume_number],
+                [doc.series_id, doc.volume_number],
                 {_id: doc.id}
             );
         }
@@ -193,19 +192,20 @@ class Volume(Document):
     ''')
 
     @classmethod
-    def query(cls, db, series_id=None, language=None, include_docs=True):
-        if language and not series_id:
-            raise ValueError('series_id must be provided with language')
-
+    def query(
+            cls, db, series_id=None, include_docs=True, start_volume_number=0,
+            total=None):
         startkey = [series_id]
-        if language:
-            startkey.append(language)
-        return cls.by_series_language(
-            db,
-            startkey=startkey,
-            endkey=startkey + [{}],
-            include_docs=include_docs,
-        )
+        if start_volume_number:
+            startkey.append(start_volume_number)
+        kws = {
+            'startkey': startkey,
+            'endkey': startkey + [{}],
+            'include_docs': include_docs,
+        }
+        if total:
+            kws['total'] = total
+        return cls.by_series_language(db, **kws)
 
     filesize_sum_by_owner_id = ViewField('volume-filesize-sum-by-owner-id', '''
     function(doc) {
@@ -225,6 +225,9 @@ class Volume(Document):
     def get_user_usage(cls, db, user_id):
         rows = cls.filesize_sum_by_owner_id(db, key=[user_id])
         return sum(map(lambda x: x['value'], rows))
+
+    def user_can_view(self, user_id):
+        return self.owner_id == user_id
 
     def get_max_spread(self, page_number):
         left_page = self.pages[page_number]

@@ -75,10 +75,12 @@ class Series(GodhandDocument):
     def retrieve_owner_instance(self, db, owner_id):
         if self.owner_id != owner_id:
             key = self._key(owner_id)
-            db.copy(self.id, key)
             instance = Series.load(db, key)
-            instance.owner_id = owner_id
-            instance.store(db)
+            if not instance:
+                db.copy(self.id, key)
+                instance = Series.load(db, key)
+                instance.owner_id = owner_id
+                instance.store(db)
             return instance
         return self
 

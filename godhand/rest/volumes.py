@@ -1,9 +1,9 @@
 from pyramid.httpexceptions import HTTPNotFound
+from pyramid.httpexceptions import HTTPForbidden
 import colander as co
 
 from ..models import Bookmark
 from ..models import Series
-from ..models import Volume
 from .utils import GodhandService
 from .utils import ValidatedVolume
 from .utils import language_validator
@@ -16,6 +16,12 @@ class VolumePathSchema(co.MappingSchema):
 
 class VolumePagePathSchema(VolumePathSchema):
     page = co.SchemaNode(co.Integer(), location='path')
+
+
+def check_can_view_volume(request):
+    volume = request.validated['volume']
+    if not volume.user_can_view(request.authenticated_userid):
+        raise HTTPForbidden('User cannot view volume.')
 
 
 volumes = GodhandService(
@@ -43,10 +49,6 @@ volume_bookmark = GodhandService(
     name='volume_bookmark',
     path='/volumes/{volume}/bookmark'
 )
-reprocess_images = GodhandService(
-    name='reprocess_images',
-    path='/reprocess_images',
-)
 
 
 @volume.get()
@@ -64,13 +66,14 @@ def get_volume(request):
         }
 
     """
+    check_can_view_volume(request)
     volume = request.validated['volume'].as_dict()
     for page in volume['pages']:
         page['url'] = request.route_url(
             'volume_file', volume=volume['id'], filename=page['filename'])
 
     next_volume = request.validated['volume'].get_next_volume(
-        request.registry['godhand:db'], owner_id=request.authenticated_userid)
+        request.registry['godhand:db'])
     volume['next'] = None
     if next_volume:
         volume['next'] = next_volume.as_dict(short=True)
@@ -89,6 +92,7 @@ class PutVolumeSchema(VolumePathSchema):
 def update_volume_meta(request):
     """ Update volume metadata.
     """
+    check_can_view_volume(request)  # TODO: check can write
     keys = ('language', 'volume_number')
     db = request.registry['godhand:db']
     volume = request.validated['volume']
@@ -102,6 +106,7 @@ def update_volume_meta(request):
 
 @volume.delete()
 def delete_volume(request):
+    check_can_view_volume(request)  # TODO: check can write
     request.validated['volume'].delete(request.registry['godhand:db'])
 
 
@@ -109,6 +114,7 @@ def delete_volume(request):
 def get_volume_cover(request):
     """ Get a volume page.
     """
+    check_can_view_volume(request)
     volume = request.validated['volume']
     attachment = volume['_attachments']['cover.jpg']
     mimetype = attachment['content_type']
@@ -126,6 +132,7 @@ def get_volume_cover(request):
 def get_volume_page(request):
     """ Get a volume page.
     """
+    check_can_view_volume(request)
     volume = request.validated['volume']
     try:
         page = volume.pages[request.validated['page']]
@@ -151,6 +158,7 @@ class VolumeFileSchema(VolumePathSchema):
 
 @volume_file.get(schema=VolumeFileSchema)
 def get_volume_file(request):
+    check_can_view_volume(request)
     attachment = request.registry['godhand:db'].get_attachment(
         request.validated['volume'].id,
         request.validated['filename'],
@@ -164,6 +172,7 @@ def get_volume_file(request):
 
 @volume_file.delete(schema=VolumeFileSchema)
 def delete_volume_file(request):
+    check_can_view_volume(request)  # TODO: check can write
     request.validated['volume'].delete_file(
         request.registry['godhand:db'], request.validated['filename'])
 
@@ -174,23 +183,10 @@ class StoreReaderProgressSchema(VolumePathSchema):
 
 @volume_bookmark.put(schema=StoreReaderProgressSchema)
 def update_volume_bookmark(request):
+    check_can_view_volume(request)
     Bookmark.update(
         db=request.registry['godhand:db'],
         user_id=request.authenticated_userid,
         volume=request.validated['volume'],
         page_number=request.validated['page_number'],
-    )
-
-
-class ReprocessImagesSchema(co.MappingSchema):
-    min_height = co.SchemaNode(co.Integer(), validator=co.Range(min=128))
-    min_width = co.SchemaNode(co.Integer(), validator=co.Range(min=128))
-
-
-@reprocess_images.post(schema=ReprocessImagesSchema)
-def run_reprocess_images(request):
-    Volume.reprocess_all_images(
-        db=request.registry['godhand:db'],
-        min_width=request.validated['min_width'],
-        min_height=request.validated['min_height'],
     )
