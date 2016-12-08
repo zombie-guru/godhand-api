@@ -1,5 +1,6 @@
 from pyramid.exceptions import HTTPBadRequest
 from pyramid.exceptions import HTTPForbidden
+from pyramid.exceptions import HTTPNotFound
 import colander as co
 
 from ..models import Bookmark
@@ -25,6 +26,11 @@ series_collection = GodhandService(
 series = GodhandService(
     name='series',
     path='/series/{series}',
+    schema=SeriesPathSchema,
+)
+series_cover = GodhandService(
+    name='series_cover',
+    path='/series/{series}/cover.jpg',
     schema=SeriesPathSchema,
 )
 series_volumes = GodhandService(
@@ -130,6 +136,22 @@ def get_series(request):
         volumes=[x.as_dict(short=True) for x in volumes],
         bookmarks=[x.as_dict() for x in bookmarks]
     )
+
+
+@series_cover.get()
+def get_series_cover(request):
+    series = request.validated['series']
+
+    if not series.user_can_view(request.authenticated_userid):
+        raise HTTPForbidden('User not allowed access to collection.')
+
+    cover = series.get_cover(request.registry['godhand:db'])
+    if cover is None:
+        raise HTTPNotFound()
+    response = request.response
+    response.body_file = cover
+    response.content_type = 'images/jpeg'
+    return response
 
 
 @series_volumes.post(content_type='multipart/form-data')

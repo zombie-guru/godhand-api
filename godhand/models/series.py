@@ -90,3 +90,10 @@ class Series(GodhandDocument):
     def add_volume(self, db, owner_id, volume):
         instance = self.retrieve_owner_instance(db, owner_id)
         volume.set_volume_collection(db, instance)
+
+    def get_cover(self, db):
+        from .volume import Volume
+        volume = Volume.first(db, self.id)
+        if volume:
+            return volume.get_cover(db)
+        return None

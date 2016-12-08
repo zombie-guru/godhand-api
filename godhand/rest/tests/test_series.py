@@ -80,6 +80,9 @@ class TestSingleSeriesTest(SingleSeriesTest):
             status=400,
         )
 
+    def test_get_cover(self):
+        self.api.get('/series/{}/cover.jpg'.format(self.series_id), status=404)
+
 
 class TestSingleVolume(SingleVolumeTest):
     def test_get_collection(self):
@@ -121,6 +124,14 @@ class TestSingleVolume(SingleVolumeTest):
     def test_get_series_forbidden(self):
         self.oauth2_login('derp@herp.com')
         self.api.get('/series/{}'.format(self.user_series_id), status=403)
+
+    def test_get_cover(self):
+        self.api.get('/series/{}/cover.jpg'.format(self.user_series_id))
+
+    def test_get_cover_forbidden(self):
+        self.oauth2_login('derp@herp.com')
+        self.api.get(
+            '/series/{}/cover.jpg'.format(self.user_series_id), status=403)
 
 
 class TestSeveralVolumes(SeveralVolumesTest):

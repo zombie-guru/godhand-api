@@ -207,6 +207,13 @@ class Volume(Document):
             kws['total'] = total
         return cls.by_series_language(db, **kws)
 
+    @classmethod
+    def first(cls, db, series_id):
+        try:
+            return cls.query(db, series_id=series_id).rows[0]
+        except IndexError:
+            return None
+
     filesize_sum_by_owner_id = ViewField('volume-filesize-sum-by-owner-id', '''
     function(doc) {
         if (doc['@class'] == 'Volume') {
@@ -239,6 +246,9 @@ class Volume(Document):
         if all(x['orientation'] == 'vertical' for x in pages):
             return 2
         return 1
+
+    def get_cover(self, db):
+        return db.get_attachment(self.id, 'cover.jpg')
 
     def as_dict(self, short=False):
         d = {

@@ -115,16 +115,13 @@ def get_volume_cover(request):
     """ Get a volume page.
     """
     check_can_view_volume(request)
-    volume = request.validated['volume']
-    attachment = volume['_attachments']['cover.jpg']
-    mimetype = attachment['content_type']
-    attachment = request.registry['godhand:db'].get_attachment(
-        volume.id, 'cover.jpg')
-    if attachment is None:
+    cover = request.validated['volume'].get_cover(
+        request.registry['godhand:db'])
+    if cover is None:
         raise HTTPNotFound()
     response = request.response
-    response.body_file = attachment
-    response.content_type = mimetype
+    response.body_file = cover
+    response.content_type = 'image/jpeg'
     return response
 
 
