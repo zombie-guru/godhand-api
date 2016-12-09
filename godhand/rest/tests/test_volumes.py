@@ -27,20 +27,25 @@ class TestSingleVolume(SingleVolumeTest):
                 '/volumes/{}/bookmark'.format(self.volume_id),
                 {'page_number': n_page},
             )
+            bookmarks = [{
+                'page_number': n_page,
+                'volume_id': self.volume_id,
+                'series_id': self.user_series_id,
+                'max_spread': 1,
+                'number_of_pages': 15,
+                'volume_number': 7,
+            }]
             expected = dict(
-                self.expected_user_series_full,
-                bookmarks=[{
-                    'page_number': n_page,
-                    'volume_id': self.volume_id,
-                    'series_id': self.user_series_id,
-                    'max_spread': 1,
-                    'number_of_pages': 15,
-                    'volume_number': 7,
-                }],
-            )
+                self.expected_user_series_full, bookmarks=bookmarks)
             response = self.api.get(
                 '/series/{}'.format(self.user_series_id)).json_body
             for x in response['bookmarks']:
+                self.assertIsNotNone(x.pop('last_updated'))
+            self.assertEquals(expected, response)
+
+            expected = {'items': bookmarks}
+            response = self.api.get('/bookmarks').json_body
+            for x in response['items']:
                 self.assertIsNotNone(x.pop('last_updated'))
             self.assertEquals(expected, response)
 
@@ -95,16 +100,17 @@ class TestSeveralVolumes(SeveralVolumesTest):
             self.api.put_json(
                 '/volumes/{}/bookmark'.format(volume_id),
                 {'page_number': n_page})
+            bookmarks = [{
+                'page_number': n_page,
+                'volume_id': volume_id,
+                'series_id': self.user_series_id,
+                'max_spread': 1,
+                'number_of_pages': 15,
+                'volume_number': 0,
+            }]
             expected = dict(
                 self.expected_user_series_full,
-                bookmarks=[{
-                    'page_number': n_page,
-                    'volume_id': volume_id,
-                    'series_id': self.user_series_id,
-                    'max_spread': 1,
-                    'number_of_pages': 15,
-                    'volume_number': 0,
-                }],
+                bookmarks=bookmarks,
             )
             response = self.api.get(
                 '/series/{}'.format(self.user_series_id)).json_body
@@ -112,27 +118,38 @@ class TestSeveralVolumes(SeveralVolumesTest):
                 self.assertIsNotNone(x.pop('last_updated'))
             self.assertEquals(expected, response)
 
+            expected = {'items': bookmarks}
+            response = self.api.get('/bookmarks').json_body
+            for x in response['items']:
+                self.assertIsNotNone(x.pop('last_updated'))
+            self.assertEquals(expected, response)
+
     def test_bookmark_ordering(self):
         """ Bookmarks should be ordered backwards in time.
         """
+        bookmarks = [{
+            'page_number': 4,
+            'volume_id': self.volume_ids[n_volume],
+            'series_id': self.user_series_id,
+            'max_spread': 1,
+            'number_of_pages': 15,
+            'volume_number': n_volume,
+        } for n_volume in range(self.n_volumes - 1, -1, -1)]
+
         for n_volume in range(self.n_volumes):
             volume_id = self.volume_ids[n_volume]
             self.api.put_json(
                 '/volumes/{}/bookmark'.format(volume_id),
                 {'page_number': 4})
-        expected = dict(
-            self.expected_user_series_full,
-            bookmarks=[{
-                'page_number': 4,
-                'volume_id': self.volume_ids[n_volume],
-                'series_id': self.user_series_id,
-                'max_spread': 1,
-                'number_of_pages': 15,
-                'volume_number': n_volume,
-            } for n_volume in range(self.n_volumes - 1, -1, -1)],
-        )
+        expected = dict(self.expected_user_series_full, bookmarks=bookmarks)
         response = self.api.get(
             '/series/{}'.format(self.user_series_id)).json_body
         for x in response['bookmarks']:
+            self.assertIsNotNone(x.pop('last_updated'))
+        self.assertEquals(expected, response)
+
+        expected = {'items': bookmarks}
+        response = self.api.get('/bookmarks').json_body
+        for x in response['items']:
             self.assertIsNotNone(x.pop('last_updated'))
         self.assertEquals(expected, response)
