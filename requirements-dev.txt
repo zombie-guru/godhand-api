@@ -1,6 +1,6 @@
 -e file:.#egg=godhand
-cornice_sphinx
-docker-compose
-flake8
-invoke
-sphinx
+cornice-sphinx==0.1
+docker-compose==1.9.0
+flake8==3.2.1
+invoke==0.13.0
+Sphinx==1.4.9
