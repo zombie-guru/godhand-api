@@ -4,3 +4,6 @@ docker-compose==1.9.0
 flake8==3.2.1
 invoke==0.13.0
 Sphinx==1.4.9
+
+# sphinx bug
+docutils==0.12
