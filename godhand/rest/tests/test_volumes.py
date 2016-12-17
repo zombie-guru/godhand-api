@@ -27,11 +27,14 @@ class TestSingleVolume(SingleVolumeTest):
                 '/volumes/{}/bookmark'.format(self.volume_id),
                 {'page_number': n_page},
             )
+            page = self.example_volume.expected_pages[n_page]
             bookmarks = [{
                 'page_number': n_page,
                 'volume_id': self.volume_id,
                 'series_id': self.user_series_id,
-                'max_spread': 1,
+                'page0': 'http://localhost/volumes/{}/files/{}'.format(
+                    self.volume_id, page['filename']),
+                'page1': None,
                 'number_of_pages': 15,
                 'volume_number': 7,
             }]
@@ -100,11 +103,14 @@ class TestSeveralVolumes(SeveralVolumesTest):
             self.api.put_json(
                 '/volumes/{}/bookmark'.format(volume_id),
                 {'page_number': n_page})
+            page = self.example_volume.expected_pages[n_page]
             bookmarks = [{
                 'page_number': n_page,
                 'volume_id': volume_id,
                 'series_id': self.user_series_id,
-                'max_spread': 1,
+                'page0': 'http://localhost/volumes/{}/files/{}'.format(
+                    volume_id, page['filename']),
+                'page1': None,
                 'number_of_pages': 15,
                 'volume_number': 0,
             }]
@@ -124,16 +130,21 @@ class TestSeveralVolumes(SeveralVolumesTest):
                 self.assertIsNotNone(x.pop('last_updated'))
             self.assertEquals(expected, response)
 
+    maxDiff = None
+
     def test_bookmark_ordering(self):
         """ Bookmarks should be ordered backwards in time.
         """
+        page = self.example_volume.expected_pages[4]
         bookmarks = [{
             'page_number': 4,
             'volume_id': self.volume_ids[n_volume],
             'series_id': self.user_series_id,
-            'max_spread': 1,
             'number_of_pages': 15,
             'volume_number': n_volume,
+            'page0': 'http://localhost/volumes/{}/files/{}'.format(
+                self.volume_ids[n_volume], page['filename']),
+            'page1': None,
         } for n_volume in range(self.n_volumes - 1, -1, -1)]
 
         for n_volume in range(self.n_volumes):

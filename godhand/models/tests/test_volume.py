@@ -45,8 +45,8 @@ class TestVolume(object):
 
     def test_get_max_spread_vv(self):
         instance = self.cls(pages=[
-            {'orientation': 'vertical'},
-            {'orientation': 'vertical'},
+            {'orientation': 'vertical', 'filename': 'derp1'},
+            {'orientation': 'vertical', 'filename': 'derp2'},
         ])
         expected = 2
         response = instance.get_max_spread(0)
@@ -54,8 +54,8 @@ class TestVolume(object):
 
     def test_get_max_spread_vh(self):
         instance = self.cls(pages=[
-            {'orientation': 'vertical'},
-            {'orientation': 'horizontal'},
+            {'orientation': 'vertical', 'filename': 'derp1'},
+            {'orientation': 'horizontal', 'filename': 'derp2'},
         ])
         expected = 1
         response = instance.get_max_spread(0)
@@ -63,8 +63,8 @@ class TestVolume(object):
 
     def test_get_max_spread_hv(self):
         instance = self.cls(pages=[
-            {'orientation': 'horizontal'},
-            {'orientation': 'vertical'},
+            {'orientation': 'horizontal', 'filename': 'derp1'},
+            {'orientation': 'vertical', 'filename': 'derp2'},
         ])
         expected = 1
         response = instance.get_max_spread(0)
@@ -72,7 +72,7 @@ class TestVolume(object):
 
     def test_get_max_spread_v(self):
         instance = self.cls(pages=[
-            {'orientation': 'vertical'},
+            {'orientation': 'vertical', 'filename': 'derp1'},
         ])
         expected = 1
         response = instance.get_max_spread(0)
@@ -80,11 +80,8 @@ class TestVolume(object):
 
     def test_get_max_spread_h(self):
         instance = self.cls(pages=[
-            {'orientation': 'horizontal'},
+            {'orientation': 'horizontal', 'filename': 'derp2'},
         ])
         expected = 1
         response = instance.get_max_spread(0)
         assert expected == response
-
-    def test_get_user_usage_none(self):
-        pass

@@ -134,7 +134,7 @@ def get_series(request):
     return dict(
         series.as_dict(),
         volumes=[x.as_dict(short=True) for x in volumes],
-        bookmarks=[x.as_dict() for x in bookmarks]
+        bookmarks=[x.as_dict(request) for x in bookmarks]
     )
 
 

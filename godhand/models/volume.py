@@ -237,15 +237,23 @@ class Volume(Document):
         return self.owner_id == user_id
 
     def get_max_spread(self, page_number):
-        left_page = self.pages[page_number]
+        pages = self.get_spread(page_number)
+        pages = filter(lambda x: x is not None, pages)
+        pages = map(lambda x: 1, pages)
+        return sum(pages)
+
+    def get_spread(self, page_number):
+        page0 = self.pages[page_number]
+        page1 = None
         try:
-            right_page = self.pages[page_number + 1]
+            page1 = self.pages[page_number + 1]
         except IndexError:
-            return 1
-        pages = (left_page, right_page)
-        if all(x['orientation'] == 'vertical' for x in pages):
-            return 2
-        return 1
+            return page0['filename'], None
+
+        pages = (page0, page1)
+        if not all(x['orientation'] == 'vertical' for x in pages):
+            return page0['filename'], None
+        return page0['filename'], page1['filename']
 
     def get_cover(self, db):
         return db.get_attachment(self.id, 'cover.jpg')

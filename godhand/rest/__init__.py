@@ -1,3 +1,4 @@
+import logging
 import re
 
 from pyramid.authentication import AuthTktAuthenticationPolicy
@@ -16,6 +17,9 @@ from .utils import groupfinder
 
 
 def main(global_config, **settings):
+    logging.getLogger('PIL.PngImagePlugin').setLevel('INFO')
+    logging.getLogger('PIL.Image').setLevel('INFO')
+
     cfg = GodhandConfiguration.from_env(
         couchdb_url=settings.get('couchdb_url', None),
         disable_auth=settings.get('disable_auth', None),

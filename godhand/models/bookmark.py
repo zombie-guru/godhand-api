@@ -14,10 +14,12 @@ class Bookmark(GodhandDocument):
     series_id = TextField()
     volume_id = TextField()
     page_number = IntegerField()
-    max_spread = IntegerField()
     number_of_pages = IntegerField()
     last_updated = DateTimeField()
     volume_number = IntegerField()
+
+    page0 = TextField()
+    page1 = TextField()
 
     @classmethod
     def _key(cls, user_id, volume_id):
@@ -38,7 +40,7 @@ class Bookmark(GodhandDocument):
             )
         instance.page_number = page_number
         instance.last_updated = datetime.utcnow()
-        instance.max_spread = volume.get_max_spread(page_number)
+        instance.page0, instance.page1 = volume.get_spread(page_number)
         instance.store(db)
         cls.sync(db)
         return instance
@@ -72,13 +74,20 @@ class Bookmark(GodhandDocument):
             include_docs=include_docs,
         )
 
-    def as_dict(self):
+    def as_dict(self, request):
         return {
             'series_id': self.series_id,
             'volume_id': self.volume_id,
-            'max_spread': self.max_spread or 1,
             'number_of_pages': self.number_of_pages,
             'page_number': self.page_number,
             'last_updated': self.last_updated.isoformat(),
             'volume_number': self.volume_number,
+            'page0': self.get_page_url(request, self.page0),
+            'page1': self.get_page_url(request, self.page1),
         }
+
+    def get_page_url(self, request, filename):
+        if not filename:
+            return None
+        return request.route_url(
+            'volume_file', volume=self.volume_id, filename=filename)
