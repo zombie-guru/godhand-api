@@ -25,24 +25,6 @@ def wait_for_couchdb(url):
     wait_for_socket_open(url.hostname, url.port)
 
 
-def non_null(x):
-    return x is not None
-
-
-def maybe_int(x):
-    try:
-        return int(x)
-    except ValueError:
-        return None
-
-
-def only_integers(values):
-    try:
-        return list(filter(non_null, (maybe_int(x) for x in values)))
-    except TypeError:
-        return []
-
-
 def batched(gen, batch_size):
     gen = iter(gen)
     while True:

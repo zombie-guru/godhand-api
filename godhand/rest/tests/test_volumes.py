@@ -12,6 +12,21 @@ class TestSingleVolume(SingleVolumeTest):
         self.oauth2_login('derp@herp.com')
         self.api.get('/volumes/{}'.format(self.volume_id), status=403)
 
+    def test_update_volume(self):
+        self.api.put_json('/volumes/{}'.format(self.volume_id), {
+            'volume_number': 8,
+            'language': 'jpn',
+        })
+        expected = dict(self.expected_volume, volume_number=8, language='jpn')
+        response = self.api.get('/volumes/{}'.format(self.volume_id)).json_body
+        self.assertEquals(expected, response)
+
+    def test_update_volume_forbidden(self):
+        self.oauth2_login('derp@herp.com')
+        self.api.put_json('/volumes/{}'.format(self.volume_id), {
+            'volume_number': 8,
+        }, status=403)
+
     def test_get_cover(self):
         response = self.api.get('/volumes/{}/cover.jpg'.format(self.volume_id))
         self.assertEquals('image/jpeg', response.content_type)

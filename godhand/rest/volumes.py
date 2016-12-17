@@ -3,7 +3,6 @@ from pyramid.httpexceptions import HTTPForbidden
 import colander as co
 
 from ..models import Bookmark
-from ..models import Series
 from .utils import GodhandService
 from .utils import ValidatedVolume
 from .utils import language_validator
@@ -24,6 +23,12 @@ def check_can_view_volume(request):
         raise HTTPForbidden('User cannot view volume.')
 
 
+def check_can_write_volume(request):
+    volume = request.validated['volume']
+    if not volume.user_can_write(request.authenticated_userid):
+        raise HTTPForbidden('User cannot write volume.')
+
+
 volumes = GodhandService(
     name='volumes',
     path='/volumes',
@@ -36,10 +41,6 @@ volume = GodhandService(
 volume_cover = GodhandService(
     name='volume_cover',
     path='/volumes/{volume}/cover.jpg',
-)
-volume_page = GodhandService(
-    name='volume_page',
-    path='/volumes/{volume}/pages/{page}'
 )
 volume_file = GodhandService(
     name='volume_file',
@@ -81,7 +82,6 @@ def get_volume(request):
 
 
 class PutVolumeSchema(VolumePathSchema):
-    series_id = co.SchemaNode(co.String(), missing=None)
     volume_number = co.SchemaNode(
         co.Integer(), validator=co.Range(min=0), missing=None)
     language = co.SchemaNode(
@@ -92,21 +92,16 @@ class PutVolumeSchema(VolumePathSchema):
 def update_volume_meta(request):
     """ Update volume metadata.
     """
-    check_can_view_volume(request)  # TODO: check can write
+    check_can_write_volume(request)
     keys = ('language', 'volume_number')
     db = request.registry['godhand:db']
     volume = request.validated['volume']
-    series_id = request.validated['series_id']
-    series = None
-    if series_id:
-        series = Series.load(db, series_id)
-    volume.update_meta(
-        db, series=series, **{k: request.validated[k] for k in keys})
+    volume.update_meta(db, **{k: request.validated[k] for k in keys})
 
 
 @volume.delete()
 def delete_volume(request):
-    check_can_view_volume(request)  # TODO: check can write
+    check_can_write_volume(request)
     request.validated['volume'].delete(request.registry['godhand:db'])
 
 
@@ -122,30 +117,6 @@ def get_volume_cover(request):
     response = request.response
     response.body_file = cover
     response.content_type = 'image/jpeg'
-    return response
-
-
-@volume_page.get(schema=VolumePagePathSchema)
-def get_volume_page(request):
-    """ Get a volume page.
-    """
-    check_can_view_volume(request)
-    volume = request.validated['volume']
-    try:
-        page = volume.pages[request.validated['page']]
-    except IndexError:
-        raise HTTPNotFound('Page does not exist.')
-
-    attachment = volume['_attachments'][page['filename']]
-    mimetype = attachment['content_type']
-
-    attachment = request.registry['godhand:db'].get_attachment(
-        volume.id, page['filename'])
-    if attachment is None:
-        raise HTTPNotFound()
-    response = request.response
-    response.body_file = attachment
-    response.content_type = mimetype
     return response
 
 
@@ -169,7 +140,7 @@ def get_volume_file(request):
 
 @volume_file.delete(schema=VolumeFileSchema)
 def delete_volume_file(request):
-    check_can_view_volume(request)  # TODO: check can write
+    check_can_write_volume(request)
     request.validated['volume'].delete_file(
         request.registry['godhand:db'], request.validated['filename'])
 

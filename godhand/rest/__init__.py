@@ -11,7 +11,6 @@ import pyramid.security
 
 from ..config import GodhandConfiguration
 from ..models import init_views
-from ..models.auth import User
 from ..utils import wait_for_couchdb
 from .utils import groupfinder
 
@@ -55,7 +54,6 @@ def setup_db(config, couchdb_url, root_email):
         authdb = client['auth']
     config.registry['godhand:db'] = db
     config.registry['godhand:authdb'] = authdb
-    User.update(authdb, email=root_email, groups=['root'])
     init_views(db)
 
 

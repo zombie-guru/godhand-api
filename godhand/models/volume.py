@@ -143,23 +143,13 @@ class Volume(Document):
         finally:
             cover.close
 
-    def update_meta(self, db, language=None, volume_number=None, series=None):
-        from .series import Series
+    def update_meta(self, db, language=None, volume_number=None):
         if language:
             self.language = language
         if volume_number:
             self.volume_number = volume_number
-        current_series = Series.load(db, self.series_id)
-        if series:
-            current_series = Series.load(db, self.series_id)
-            if current_series and current_series.id != series.id:
-                current_series.move_volume_to(db, series, self)
-                self.series_id = series.id
-        else:
-            current_series.update_volume_meta(db, self)
         self.store(db)
         self.sync(db)
-        Series.by_attribute.sync(db)
         return self
 
     def delete_file(self, db, filename):
@@ -234,6 +224,9 @@ class Volume(Document):
         return sum(map(lambda x: x['value'], rows))
 
     def user_can_view(self, user_id):
+        return self.owner_id == user_id
+
+    def user_can_write(self, user_id):
         return self.owner_id == user_id
 
     def get_max_spread(self, page_number):

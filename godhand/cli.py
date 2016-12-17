@@ -12,7 +12,6 @@ from .opendata import replace_uri_prefixes
 from .config import GodhandConfiguration
 from .models import Series
 from .models import Volume
-from .models.auth import User
 from .utils import wait_for_couchdb
 
 
@@ -46,8 +45,6 @@ def main():
         check_call(['pserve', 'app.ini'])
     elif args.cmd == 'upload':
         upload(args.couchdb_url)
-    elif args.cmd == 'update-user':
-        update_user(args.couchdb_url, args.user, args.groups)
 
 
 def upload(couchdb_url=None, lines=None):
@@ -63,12 +60,6 @@ def upload(couchdb_url=None, lines=None):
         db.update(batch)
     Series.by_name.sync(db)
     Volume.by_series.sync(db)
-
-
-def update_user(couchdb_url, user, groups):
-    cfg = GodhandConfiguration.from_env(couchdb_url=couchdb_url)
-    db = get_db(cfg, 'auth')
-    User.update(db, user, groups)
 
 
 def iterdocs(lines):
