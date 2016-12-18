@@ -14,6 +14,7 @@ from couchdb.mapping import TextField
 from couchdb.mapping import ViewField
 
 from .. import bookextractor
+from .series import Series
 
 LOG = logging.getLogger('godhand')
 
@@ -164,11 +165,11 @@ class Volume(Document):
         self.sync(db)
 
     def delete(self, db):
-        from .series import Series
-        series = Series.load(db, self.series_id)
-        series.delete_volume(db, self)
         db.delete(self)
         self.sync(db)
+
+        if self.query(db, series_id=self.series_id).total_rows == 0:
+            Series.delete_by_id(db, self.series_id)
 
     by_series_language = ViewField('volumes-by-series-language', '''
     function(doc) {

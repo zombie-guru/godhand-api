@@ -27,6 +27,21 @@ class TestSingleVolume(SingleVolumeTest):
             'volume_number': 8,
         }, status=403)
 
+    def test_delete_last(self):
+        """ Deleting the last volume of a series should delete the series.
+        """
+        self.api.delete('/volumes/{}'.format(self.volume_id))
+        self.api.get('/volumes/{}'.format(self.volume_id), status=400)
+        self.api.get('/series/{}'.format(self.user_series_id), status=400)
+        expected = {'items': []}
+        response = self.api.get(
+            '/users/{}/series'.format(self.user_id)).json_body
+        self.assertEquals(expected, response)
+
+    def test_delete_forbidden(self):
+        self.oauth2_login('derp@herp.com')
+        self.api.delete('/volumes/{}'.format(self.volume_id), status=403)
+
     def test_get_cover(self):
         response = self.api.get('/volumes/{}/cover.jpg'.format(self.volume_id))
         self.assertEquals('image/jpeg', response.content_type)
@@ -83,6 +98,18 @@ class TestSeveralVolumes(SeveralVolumesTest):
         expected = dict(self.get_expected_volume(n_volume), next=None)
         response = self.api.get(
             '/volumes/{}'.format(self.volume_ids[n_volume])).json_body
+        self.assertEquals(expected, response)
+
+    def test_delete(self):
+        """ Deleting a single volume of a series should not delete the series.
+        """
+        volume_id = self.volume_ids[0]
+        self.api.delete('/volumes/{}'.format(volume_id))
+        self.api.get('/volumes/{}'.format(volume_id), status=400)
+        expected = {'items': [self.expected_user_series]}
+        response = self.api.get(
+            '/users/{}/series'.format(self.user_id),
+        ).json_body
         self.assertEquals(expected, response)
 
     def test_get_cover(self):

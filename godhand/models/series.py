@@ -50,6 +50,13 @@ class Series(GodhandDocument):
         cls.sync(db)
         return doc
 
+    @classmethod
+    def delete_by_id(cls, db, series_id):
+        series = cls.load(db, series_id)
+        if series:
+            db.delete(series)
+            cls.sync(db)
+
     by_owner_name = ViewField('series-by-name', '''
     function(doc) {
         if (doc['@class'] === 'Series') {
