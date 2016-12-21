@@ -29,10 +29,6 @@ def check_can_write_volume(request):
         raise HTTPForbidden('User cannot write volume.')
 
 
-volumes = GodhandService(
-    name='volumes',
-    path='/volumes',
-)
 volume = GodhandService(
     name='volume',
     path='/volumes/{volume}',
