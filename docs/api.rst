@@ -5,19 +5,25 @@ Authentication Endpoints
 ========================
 
 .. cornice-autodoc::
-   :modules: godhand.rest.auth
+  :modules: godhand.rest.auth
 
 .. cornice-autodoc::
-   :modules: godhand.rest.account
+  :modules: godhand.rest.account
+
+Subscription Endpoints
+======================
+
+.. cornice-autodoc::
+  :modules: godhand.rest.subscribers
 
 Reader Endpoints
 ================
 
 .. cornice-autodoc::
-   :modules: godhand.rest.series
+  :modules: godhand.rest.series
 
 .. cornice-autodoc::
-   :modules: godhand.rest.volumes
+  :modules: godhand.rest.volumes
 
 .. cornice-autodoc::
-   :modules: godhand.rest.bookmarks
+  :modules: godhand.rest.bookmarks

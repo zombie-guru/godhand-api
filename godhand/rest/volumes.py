@@ -57,9 +57,13 @@ def get_volume(request):
         {
             "id": "myuniqueid",
             "volume_number": 0,
-            "pages": [
-                {"url": "http://url.to.page0.jpg"}
-            ]
+            "pages": [{
+                "url": "http://url.to.page0.jpg"
+                "filename": "page0.jpg",
+                "width": 400,
+                "height": 800,
+                "orientation": "vertical"
+            }]
         }
 
     """

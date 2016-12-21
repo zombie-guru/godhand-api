@@ -13,14 +13,6 @@ account = GodhandService(
     name='account',
     path='/account',
 )
-subscribers = GodhandService(
-    name='account subscribers',
-    path='/account/subscribers',
-)
-subscriber = GodhandService(
-    name='account subscriber',
-    path='/account/subscribers/{subscriber}',
-)
 
 
 @account.get()
@@ -31,8 +23,16 @@ def get_account_info(request):
 
         {
             "needs_authentication": false,
-            "subscribed_ids": ["cool.user@gmail.com"],
-            "user_id": "so.ronery@gmail.com",
+            "subscriptions": [
+                {"id": "cool.user@gmail.com"}
+            ],
+            "subscriber_requests": [
+                {"id": "me.too@gmail.com"}
+            ],
+            "subscription_requests": [
+                {"id": "i.have.good.stuff@gmail.com"}
+            ],
+            "id": "so.ronery@gmail.com",
             "usage": 1024
         }
 
@@ -49,44 +49,3 @@ def get_account_info(request):
         'usage': Volume.get_user_usage(
             request.registry['godhand:db'], request.authenticated_userid)
     }
-
-
-@subscribers.get()
-def get_subscribers(request):
-    """ Get subscriber ids.
-
-    .. code-block:: js
-
-        {
-            "items": [
-                "so.ronery@gmail.com"
-            ]
-        }
-
-    """
-    db = request.registry['godhand:db']
-    settings = UserSettings.for_user(db, request.authenticated_userid)
-    return {'items': settings.subscribers}
-
-
-class SubscriberSchema(co.MappingSchema):
-    subscriber = co.SchemaNode(
-        co.String(), location='path', validator=co.Email())
-
-
-@subscriber.put(schema=SubscriberSchema)
-def add_subscriber(request):
-    """ Add a subscriber.
-    """
-    db = request.registry['godhand:db']
-    settings = UserSettings.for_user(db, request.authenticated_userid)
-    settings.add_subscriber(db, request.validated['subscriber'])
-
-
-@subscriber.delete(schema=SubscriberSchema)
-def remove_subscriber(request):
-    """ Remove a subscriber.
-    """
-    db = request.registry['godhand:db']
-    settings = UserSettings.for_user(db, request.authenticated_userid)
-    settings.remove_subscriber(db, request.validated['subscriber'])
