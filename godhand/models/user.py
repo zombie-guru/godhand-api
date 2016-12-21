@@ -33,5 +33,11 @@ class UserSettings(Document):
     def add_subscriber(self, db, subscriber_id):
         if subscriber_id not in self.subscribers:
             self.subscribers.append(subscriber_id)
-            self.owner_by_subscriber.sync(db)
             self.store(db)
+            self.owner_by_subscriber.sync(db)
+
+    def remove_subscriber(self, db, subscriber_id):
+        if subscriber_id in self.subscribers:
+            self.subscribers.remove(subscriber_id)
+            self.store(db)
+            self.owner_by_subscriber.sync(db)

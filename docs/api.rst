@@ -8,7 +8,7 @@ Authentication Endpoints
    :modules: godhand.rest.auth
 
 .. cornice-autodoc::
-   :modules: godhand.rest.user
+   :modules: godhand.rest.account
 
 Reader Endpoints
 ================
@@ -21,6 +21,3 @@ Reader Endpoints
 
 .. cornice-autodoc::
    :modules: godhand.rest.bookmarks
-
-.. cornice-autodoc::
-   :modules: godhand.rest.settings
