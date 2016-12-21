@@ -34,6 +34,8 @@ class GetUsersSchema(co.MappingSchema):
 
 @logout.post()
 def user_logout(request):
+    """ Logout user.
+    """
     response = request.response
     response.headers.extend(forget(request))
     return response

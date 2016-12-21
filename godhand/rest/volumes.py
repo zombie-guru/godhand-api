@@ -35,15 +35,15 @@ volume = GodhandService(
     schema=VolumePathSchema,
 )
 volume_cover = GodhandService(
-    name='volume_cover',
+    name='volume cover',
     path='/volumes/{volume}/cover.jpg',
 )
 volume_file = GodhandService(
-    name='volume_file',
+    name='volume file',
     path='/volumes/{volume}/files/{filename:.+}'
 )
 volume_bookmark = GodhandService(
-    name='volume_bookmark',
+    name='volume bookmark',
     path='/volumes/{volume}/bookmark'
 )
 
@@ -67,7 +67,7 @@ def get_volume(request):
     volume = request.validated['volume'].as_dict()
     for page in volume['pages']:
         page['url'] = request.route_url(
-            'volume_file', volume=volume['id'], filename=page['filename'])
+            'volume file', volume=volume['id'], filename=page['filename'])
 
     next_volume = request.validated['volume'].get_next_volume(
         request.registry['godhand:db'])
@@ -97,6 +97,8 @@ def update_volume_meta(request):
 
 @volume.delete()
 def delete_volume(request):
+    """ Delete volume.
+    """
     check_can_write_volume(request)
     request.validated['volume'].delete(request.registry['godhand:db'])
 
@@ -122,6 +124,8 @@ class VolumeFileSchema(VolumePathSchema):
 
 @volume_file.get(schema=VolumeFileSchema)
 def get_volume_file(request):
+    """ Get volume file bytes.
+    """
     check_can_view_volume(request)
     attachment = request.registry['godhand:db'].get_attachment(
         request.validated['volume'].id,
@@ -136,6 +140,8 @@ def get_volume_file(request):
 
 @volume_file.delete(schema=VolumeFileSchema)
 def delete_volume_file(request):
+    """ Delete file of volume.
+    """
     check_can_write_volume(request)
     request.validated['volume'].delete_file(
         request.registry['godhand:db'], request.validated['filename'])
@@ -147,6 +153,8 @@ class StoreReaderProgressSchema(VolumePathSchema):
 
 @volume_bookmark.put(schema=StoreReaderProgressSchema)
 def update_volume_bookmark(request):
+    """ Update bookmark for volume.
+    """
     check_can_view_volume(request)
     Bookmark.update(
         db=request.registry['godhand:db'],

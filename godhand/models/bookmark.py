@@ -90,4 +90,4 @@ class Bookmark(GodhandDocument):
         if not filename:
             return None
         return request.route_url(
-            'volume_file', volume=self.volume_id, filename=filename)
+            'volume file', volume=self.volume_id, filename=filename)

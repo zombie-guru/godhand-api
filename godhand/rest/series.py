@@ -20,7 +20,7 @@ class UserPathSchema(co.MappingSchema):
 
 
 series_collection = GodhandService(
-    name="series_collection",
+    name="series collection",
     path="/series",
 )
 series = GodhandService(
@@ -29,17 +29,17 @@ series = GodhandService(
     schema=SeriesPathSchema,
 )
 series_cover = GodhandService(
-    name="series_cover",
+    name="series cover",
     path="/series/{series}/cover.jpg",
     schema=SeriesPathSchema,
 )
 series_volumes = GodhandService(
-    name="series_volumes",
+    name="series volumes",
     path="/series/{series}/volumes",
     schema=SeriesPathSchema,
 )
 user_series_collection = GodhandService(
-    name="user_series_collection",
+    name="user series collection",
     path="/users/{user}/series",
     schema=UserPathSchema,
 )
