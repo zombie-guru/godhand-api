@@ -7,7 +7,6 @@ from couchdb.mapping import ViewField
 class UserSettings(Document):
     class_ = TextField('@class', default='UserSettings')
     user_id = TextField()
-    language = TextField()
     subscribers = ListField(TextField())
 
     owner_by_subscriber = ViewField('owner_by_subscriber', '''
