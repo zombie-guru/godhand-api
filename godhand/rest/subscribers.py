@@ -1,5 +1,6 @@
 import colander as co
 
+from ..models import Subscription
 from .utils import GodhandService
 
 
@@ -26,7 +27,10 @@ def get_subscribers(request):
         ]}
 
     """
-    pass
+    rows = Subscription.query(
+        request.registry['godhand:db'],
+        publisher_id=request.authenticated_userid)
+    return {'items': [x.as_dict() for x in rows]}
 
 
 class PutSubscribersSchema(co.MappingSchema):
@@ -50,7 +54,13 @@ def update_subscribers(request):
     requested, it will show up again in your ``subscription_requests``.
 
     """
-    pass
+    db = request.registry['godhand:db']
+    v = request.validated
+    Subscription.retrieve(
+        request.registry['godhand:db'],
+        subscriber_id=v['user_id'],
+        publisher_id=request.authenticated_userid
+    ).update_publisher_status(db, v['action'])
 
 
 @subscriptions.get()
@@ -64,7 +74,10 @@ def get_subscriptions(request):
         ]}
 
     """
-    pass
+    rows = Subscription.query(
+        request.registry['godhand:db'],
+        subscriber_id=request.authenticated_userid)
+    return {'items': [x.as_dict() for x in rows]}
 
 
 class PutSubscriptionsSchema(co.MappingSchema):
@@ -88,4 +101,10 @@ def update_subscriptions(request):
     requested, it will show up again in your ``subscriber_requests``.
 
     """
-    pass
+    db = request.registry['godhand:db']
+    v = request.validated
+    Subscription.retrieve(
+        request.registry['godhand:db'],
+        publisher_id=v['user_id'],
+        subscriber_id=request.authenticated_userid
+    ).update_subscriber_status(db, v['action'])

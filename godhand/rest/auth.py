@@ -17,14 +17,17 @@ from .utils import GodhandService
 logout = GodhandService(
     name='logout',
     path='/logout',
+    permission=None,
 )
 oauth2_init = GodhandService(
     name='oauth2-init',
     path='/oauth2-init',
+    permission=None,
 )
 oauth2_callback = GodhandService(
     name='oauth2-callback',
     path='/oauth2-callback',
+    permission=None,
 )
 
 

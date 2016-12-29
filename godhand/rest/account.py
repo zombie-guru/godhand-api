@@ -12,6 +12,7 @@ class UserPathSchema(co.MappingSchema):
 account = GodhandService(
     name='account',
     path='/account',
+    permission=None,
 )
 
 

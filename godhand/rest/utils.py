@@ -1,6 +1,8 @@
 from functools import partial
 
 from cornice import Service
+from pyramid.security import Allow
+from pyramid.security import Authenticated
 import colander as co
 import pycountry
 
@@ -12,7 +14,16 @@ def groupfinder(userid, request):
     return [userid]
 
 
-GodhandService = partial(Service)
+default_acl = (
+    (Allow, Authenticated, 'info'),
+)
+
+
+GodhandService = partial(
+    Service,
+    acl=lambda r: default_acl,
+    permission='info',
+)
 
 
 class ValidatedSeries(co.String):
