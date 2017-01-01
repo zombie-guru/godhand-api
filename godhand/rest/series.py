@@ -8,6 +8,8 @@ from ..models import Series
 from ..models import Volume
 from .utils import GodhandService
 from .utils import ValidatedSeries
+from .utils import owner_group
+from .utils import subscription_group
 
 
 class SeriesPathSchema(co.MappingSchema):
@@ -17,6 +19,40 @@ class SeriesPathSchema(co.MappingSchema):
 
 class UserPathSchema(co.MappingSchema):
     user = co.SchemaNode(co.String(), location="path", validator=co.Email())
+
+
+def check_can_view_user_series(request, owner_id):
+    ok_groups = [
+        subscription_group(owner_id),
+        owner_group(owner_id),
+    ]
+    if not any(x in request.effective_principals for x in ok_groups):
+        raise HTTPForbidden('User cannot view series.')
+
+
+def check_can_view_series(request, ignore_root=False):
+    series = request.validated['series']
+    if ignore_root and series.owner_id == 'root':
+        # everyone can read root
+        return
+    ok_groups = [
+        subscription_group(series.owner_id),
+        owner_group(series.owner_id),
+    ]
+    if not any(x in request.effective_principals for x in ok_groups):
+        raise HTTPForbidden('User cannot view series.')
+
+
+def check_can_write_series(request, ignore_root=False):
+    series = request.validated['series']
+    if ignore_root and series.owner_id == 'root':
+        # everyone can "write" to root - a copy of the series will be made.
+        return
+    ok_groups = [
+        owner_group(series.owner_id),
+    ]
+    if not any(x in request.effective_principals for x in ok_groups):
+        raise HTTPForbidden('User cannot write series.')
 
 
 series_collection = GodhandService(
@@ -124,11 +160,9 @@ def get_series(request):
         }
 
     """
+    check_can_view_series(request, ignore_root=True)
+
     series = request.validated["series"]
-
-    if not series.user_can_view(request.authenticated_userid):
-        raise HTTPForbidden("User not allowed access to collection.")
-
     volumes = Volume.query(request.registry["godhand:db"], series_id=series.id)
     bookmarks = Bookmark.query(
         request.registry["godhand:db"],
@@ -145,10 +179,8 @@ def get_series(request):
 def get_series_cover(request):
     """ Get cover page as image.
     """
+    check_can_view_series(request, ignore_root=True)
     series = request.validated["series"]
-
-    if not series.user_can_view(request.authenticated_userid):
-        raise HTTPForbidden("User not allowed access to collection.")
 
     cover = series.get_cover(request.registry["godhand:db"])
     if cover is None:
@@ -167,6 +199,8 @@ def upload_volume_to_series(request):
     duplicate.
 
     """
+    check_can_write_series(request, ignore_root=True)
+
     series = request.validated["series"]
     try:
         volume_file = request.POST["volume"]
@@ -205,9 +239,7 @@ def get_user_series_collection(request):
         }]}
 
     """
-    if request.validated["user"] != request.authenticated_userid:
-        # TODO: support subscribers
-        raise HTTPForbidden("User not allowed access to collection.")
+    check_can_view_user_series(request, request.validated['user'])
 
     rows = Series.query(
         request.registry["godhand:db"],

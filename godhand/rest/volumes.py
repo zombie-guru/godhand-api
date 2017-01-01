@@ -6,6 +6,8 @@ from ..models import Bookmark
 from .utils import GodhandService
 from .utils import ValidatedVolume
 from .utils import language_validator
+from .utils import owner_group
+from .utils import subscription_group
 
 
 class VolumePathSchema(co.MappingSchema):
@@ -19,14 +21,21 @@ class VolumePagePathSchema(VolumePathSchema):
 
 def check_can_view_volume(request):
     volume = request.validated['volume']
-    if not volume.user_can_view(request.authenticated_userid):
+    ok_groups = [
+        subscription_group(volume.owner_id),
+        owner_group(volume.owner_id),
+    ]
+    if not any(x in request.effective_principals for x in ok_groups):
         raise HTTPForbidden('User cannot view volume.')
 
 
 def check_can_write_volume(request):
     volume = request.validated['volume']
-    if not volume.user_can_write(request.authenticated_userid):
-        raise HTTPForbidden('User cannot write volume.')
+    ok_groups = [
+        owner_group(volume.owner_id),
+    ]
+    if not any(x in request.effective_principals for x in ok_groups):
+        raise HTTPForbidden('User cannot view volume.')
 
 
 volume = GodhandService(

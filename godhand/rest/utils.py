@@ -6,12 +6,27 @@ from pyramid.security import Authenticated
 import colander as co
 import pycountry
 
-from godhand.models.series import Series
-from godhand.models.volume import Volume
+from godhand.models import Series
+from godhand.models import Subscription
+from godhand.models import Volume
+
+
+def owner_group(owner_id):
+    return 'owner:{}'.format(owner_id)
+
+
+def subscription_group(publisher_id):
+    return 'subscription:{}'.format(publisher_id)
 
 
 def groupfinder(userid, request):
-    return [userid]
+    subscriptions = Subscription.query(
+        request.registry['godhand:db'], subscriber_id=userid)
+    return [
+        owner_group(userid)
+    ] + [
+        subscription_group(x.publisher_id) for x in subscriptions
+    ]
 
 
 default_acl = (

@@ -172,8 +172,6 @@ class TestSeveralVolumes(SeveralVolumesTest):
                 self.assertIsNotNone(x.pop('last_updated'))
             self.assertEquals(expected, response)
 
-    maxDiff = None
-
     def test_bookmark_ordering(self):
         """ Bookmarks should be ordered backwards in time.
         """
@@ -206,3 +204,27 @@ class TestSeveralVolumes(SeveralVolumesTest):
         for x in response['items']:
             self.assertIsNotNone(x.pop('last_updated'))
         self.assertEquals(expected, response)
+
+
+class TestSubscriberAccess(TestSeveralVolumes):
+    subscriber = 'other@gmail.com'
+
+    def setUp(self):
+        super(TestSubscriberAccess, self).setUp()
+
+        self.api.put_json('/subscribers', {
+            'action': 'allow',
+            'user_id': self.subscriber,
+        })
+
+        self.oauth2_login(self.subscriber)
+        self.api.put_json('/subscriptions', {
+            'action': 'allow',
+            'user_id': self.user_id,
+        })
+
+    def test_delete(self):
+        """ A subscriber should not be able to delete.
+        """
+        volume_id = self.volume_ids[0]
+        self.api.delete('/volumes/{}'.format(volume_id), status=403)
