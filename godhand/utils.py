@@ -16,7 +16,7 @@ def wait_for_socket_open(host, port):
     for _ in range(10):
         if socket_is_open(host, port):
             return
-        time.sleep(1)
+        time.sleep(0.1)
     raise RuntimeError('Timeout when waiting for {}:{}'.format(host, port))
 
 
