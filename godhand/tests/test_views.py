@@ -104,14 +104,13 @@ class ApiTest(unittest.TestCase):
 
 
 class TestLoggedOut(ApiTest):
-    def test_get_account_logged_out(self):
+    def test_get_account(self):
         expected = {
             'needs_authentication': True,
         }
         response = self.api.get('/account').json_body
         self.assertEquals(expected, response)
 
-    def test_logged_in(self):
         self.oauth2_login('myemail@company.com')
         expected = {
             'needs_authentication': False,
@@ -160,8 +159,7 @@ class TestLoggedIn(UserLoggedInTest):
         expected = {'items': []}
         response = self.api.get('/series').json_body
         self.assertEquals(expected, response)
-
-    def test_get_collection_name_q(self):
+        # with q
         expected = {'items': []}
         response = self.api.get('/series', params={'name_q': 'a'}).json_body
         self.assertEquals(expected, response)
@@ -183,8 +181,6 @@ class TestLoggedIn(UserLoggedInTest):
         self.assertEquals(
             {'items': []},
             self.api.get('/subscribers').json_body)
-
-    def test_get_subscriptions(self):
         self.assertEquals(
             {'items': []},
             self.api.get('/subscriptions').json_body)
@@ -264,13 +260,11 @@ class TestSingleSeries(SingleSeriesTest):
         expected = {'items': [self.expected_series]}
         response = self.api.get('/series').json_body
         self.assertEquals(expected, response)
-
-    def test_get_collection_name_q_positive(self):
+        # q positive match
         expected = {'items': [self.expected_series]}
         response = self.api.get('/series', params={'name_q': 'b'}).json_body
         self.assertEquals(expected, response)
-
-    def test_get_collection_name_q_negative(self):
+        # q negative match
         expected = {'items': []}
         response = self.api.get('/series', params={'name_q': 'c'}).json_body
         self.assertEquals(expected, response)
@@ -279,6 +273,8 @@ class TestSingleSeries(SingleSeriesTest):
         expected = self.expected_series_full
         response = self.api.get('/series/{}'.format(self.series_id)).json_body
         self.assertEquals(expected, response)
+        # no cover
+        self.api.get('/series/{}/cover.jpg'.format(self.series_id), status=404)
 
     def test_upload_to_series(self):
         volume = CbtFile()
@@ -302,15 +298,8 @@ class TestSingleSeries(SingleSeriesTest):
             'pages': volume.expected_pages,
         }
         self.assertEquals(expected, response)
-
-    def test_upload_to_series_no_body(self):
-        self.api.post(
-            '/series/{}/volumes'.format(self.series_id),
-            status=400,
-        )
-
-    def test_get_cover(self):
-        self.api.get('/series/{}/cover.jpg'.format(self.series_id), status=404)
+        # no body
+        self.api.post('/series/{}/volumes'.format(self.series_id), status=400)
 
 
 class SingleVolumeTest(SingleSeriesTest):
@@ -376,47 +365,36 @@ class TestSingleVolume(SingleVolumeTest):
         expected = {'items': [self.expected_series]}
         response = self.api.get('/series').json_body
         self.assertEquals(expected, response)
-
-    def test_get_collection_name_q_positive(self):
+        # collection positive
         expected = {'items': [self.expected_series]}
         response = self.api.get('/series', params={'name_q': 'b'}).json_body
         self.assertEquals(expected, response)
-
-    def test_get_collection_name_q_negative(self):
+        # collection negative
         expected = {'items': []}
         response = self.api.get('/series', params={'name_q': 'c'}).json_body
         self.assertEquals(expected, response)
-
-    def test_get_user_collection(self):
+        # for user
         expected = {'items': [self.expected_user_series]}
         response = self.api.get(
             '/users/{}/series'.format(self.user_id),
         ).json_body
         self.assertEquals(expected, response)
-
-    def test_get_user_collection_forbidden(self):
+        # forbidden
         self.api.get('/users/derp@herp.com/series', status=403)
 
     def test_get_series(self):
         expected = self.expected_series_full
         response = self.api.get('/series/{}'.format(self.series_id)).json_body
         self.assertEquals(expected, response)
-
-    def test_get_user_series(self):
+        # user version
         expected = self.expected_user_series_full
         response = self.api.get(
             '/series/{}'.format(self.user_series_id)).json_body
         self.assertEquals(expected, response)
-
-    def test_get_series_forbidden(self):
+        self.api.get('/series/{}/cover.jpg'.format(self.user_series_id))
+        # forbidden
         self.oauth2_login('derp@herp.com')
         self.api.get('/series/{}'.format(self.user_series_id), status=403)
-
-    def test_get_cover(self):
-        self.api.get('/series/{}/cover.jpg'.format(self.user_series_id))
-
-    def test_get_cover_forbidden(self):
-        self.oauth2_login('derp@herp.com')
         self.api.get(
             '/series/{}/cover.jpg'.format(self.user_series_id), status=403)
 
@@ -424,10 +402,17 @@ class TestSingleVolume(SingleVolumeTest):
         expected = self.expected_volume
         response = self.api.get('/volumes/{}'.format(self.volume_id)).json_body
         self.assertEquals(expected, response)
-
-    def test_get_volume_forbidden(self):
+        response = self.api.get('/volumes/{}/cover.jpg'.format(self.volume_id))
+        self.assertEquals('image/jpeg', response.content_type)
+        # forbidden
         self.oauth2_login('derp@herp.com')
         self.api.get('/volumes/{}'.format(self.volume_id), status=403)
+        self.api.put_json('/volumes/{}'.format(self.volume_id), {
+            'volume_number': 8,
+        }, status=403)
+        self.api.delete('/volumes/{}'.format(self.volume_id), status=403)
+        self.api.get(
+            '/volumes/{}/cover.jpg'.format(self.volume_id), status=403)
 
     def test_update_volume(self):
         self.api.put_json('/volumes/{}'.format(self.volume_id), {
@@ -437,12 +422,6 @@ class TestSingleVolume(SingleVolumeTest):
         expected = dict(self.expected_volume, volume_number=8, language='jpn')
         response = self.api.get('/volumes/{}'.format(self.volume_id)).json_body
         self.assertEquals(expected, response)
-
-    def test_update_volume_forbidden(self):
-        self.oauth2_login('derp@herp.com')
-        self.api.put_json('/volumes/{}'.format(self.volume_id), {
-            'volume_number': 8,
-        }, status=403)
 
     def test_delete_last(self):
         """ Deleting the last volume of a series should delete the series.
@@ -454,19 +433,6 @@ class TestSingleVolume(SingleVolumeTest):
         response = self.api.get(
             '/users/{}/series'.format(self.user_id)).json_body
         self.assertEquals(expected, response)
-
-    def test_delete_forbidden(self):
-        self.oauth2_login('derp@herp.com')
-        self.api.delete('/volumes/{}'.format(self.volume_id), status=403)
-
-    def test_get_volume_cover(self):
-        response = self.api.get('/volumes/{}/cover.jpg'.format(self.volume_id))
-        self.assertEquals('image/jpeg', response.content_type)
-
-    def test_get_volume_cover_forbidden(self):
-        self.oauth2_login('derp@herp.com')
-        self.api.get(
-            '/volumes/{}/cover.jpg'.format(self.volume_id), status=403)
 
     def test_update_bookmark(self):
         for n_page in range(14):
@@ -501,7 +467,7 @@ class TestSingleVolume(SingleVolumeTest):
 
 
 class SeveralVolumesTest(SingleSeriesTest):
-    n_volumes = 15
+    n_volumes = 3
 
     def setUp(self):
         super(SeveralVolumesTest, self).setUp()
@@ -596,6 +562,23 @@ class TestSeveralVolumes(SeveralVolumesTest):
         response = self.api.get(
             '/volumes/{}'.format(self.volume_ids[n_volume])).json_body
         self.assertEquals(expected, response)
+        for volume_id in self.volume_ids:
+            response = self.api.get('/volumes/{}/cover.jpg'.format(volume_id))
+            self.assertEquals('image/jpeg', response.content_type)
+        volume = self.get_expected_volume(0)
+        self.assertTrue(len(volume['pages']) > 0)
+        for page in volume['pages']:
+            filename = page['filename']
+            self.api.get('/volumes/{}/files/{}'.format(
+                volume['id'], filename))
+        # forbidden
+        self.oauth2_login('derp@herp.com')
+        volume = self.get_expected_volume(0)
+        self.assertTrue(len(volume['pages']) > 0)
+        for page in volume['pages']:
+            filename = page['filename']
+            self.api.get('/volumes/{}/files/{}'.format(
+                volume['id'], filename), status=403)
 
     def test_delete(self):
         """ Deleting a single volume of a series should not delete the series.
@@ -608,33 +591,6 @@ class TestSeveralVolumes(SeveralVolumesTest):
             '/users/{}/series'.format(self.user_id),
         ).json_body
         self.assertEquals(expected, response)
-
-    def test_get_cover(self):
-        for volume_id in self.volume_ids:
-            response = self.api.get('/volumes/{}/cover.jpg'.format(volume_id))
-            self.assertEquals('image/jpeg', response.content_type)
-
-    def test_get_cover_forbidden(self):
-        self.oauth2_login('derp@herp.com')
-        for volume_id in self.volume_ids:
-            self.api.get('/volumes/{}/cover.jpg'.format(volume_id), status=403)
-
-    def test_get_volume_file(self):
-        volume = self.get_expected_volume(0)
-        self.assertTrue(len(volume['pages']) > 0)
-        for page in volume['pages']:
-            filename = page['filename']
-            self.api.get('/volumes/{}/files/{}'.format(
-                volume['id'], filename))
-
-    def test_get_volume_file_forbidden(self):
-        self.oauth2_login('derp@herp.com')
-        volume = self.get_expected_volume(0)
-        self.assertTrue(len(volume['pages']) > 0)
-        for page in volume['pages']:
-            filename = page['filename']
-            self.api.get('/volumes/{}/files/{}'.format(
-                volume['id'], filename), status=403)
 
     def test_update_bookmark(self):
         volume_id = self.volume_ids[0]
