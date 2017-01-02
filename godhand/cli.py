@@ -8,14 +8,22 @@ import sys
 import couchdb.client
 import couchdb.http
 
-from .opendata import replace_uri_prefixes
 from .config import GodhandConfiguration
 from .models import Series
 from .models import Volume
 from .utils import wait_for_couchdb
 
-
 LOG = logging.getLogger(__file__)
+PREFIXES = {
+    'http://dbpedia.org/resource/': 'dbr:',
+}
+
+
+def replace_uri_prefixes(uri):
+    for k, v in PREFIXES.items():
+        if uri.startswith(k):
+            return uri.replace(k, v)
+    raise ValueError('Unknown uri: {}'.format(uri))
 
 
 def main():

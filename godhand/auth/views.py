@@ -1,6 +1,7 @@
 import hashlib
 import os
 
+from cornice import Service
 from oauth2client import client
 from pyramid.httpexceptions import HTTPFound
 from pyramid.httpexceptions import HTTPUnauthorized
@@ -10,29 +11,24 @@ from pyramid.security import remember
 import colander as co
 import requests
 
-from ..models.auth import AntiForgeryToken
-from .utils import GodhandService
+from .models import AntiForgeryToken
 
 
-logout = GodhandService(
+logout = Service(
     name='logout',
     path='/logout',
     permission=None,
 )
-oauth2_init = GodhandService(
+oauth2_init = Service(
     name='oauth2-init',
     path='/oauth2-init',
     permission=None,
 )
-oauth2_callback = GodhandService(
+oauth2_callback = Service(
     name='oauth2-callback',
     path='/oauth2-callback',
     permission=None,
 )
-
-
-class GetUsersSchema(co.MappingSchema):
-    pass
 
 
 @logout.post()

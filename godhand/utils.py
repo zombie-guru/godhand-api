@@ -33,3 +33,15 @@ def batched(gen, batch_size):
             yield batch
         if len(batch) < batch_size:
             return
+
+
+def owner_group(owner_id):
+    """ String ACL representation of owner permission.
+    """
+    return 'owner:{}'.format(owner_id)
+
+
+def subscription_group(publisher_id):
+    """ String ACL representation of subscriber permission.
+    """
+    return 'subscription:{}'.format(publisher_id)

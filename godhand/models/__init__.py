@@ -1,3 +1,4 @@
+from .auth import AntiForgeryToken  # noqa
 from .bookmark import Bookmark
 from .series import Series
 from .subscription import Subscription

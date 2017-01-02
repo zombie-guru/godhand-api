@@ -26,7 +26,7 @@ setup(
     ],
     entry_points={
         'paste.app_factory': [
-            'main = godhand.rest:main',
+            'main = godhand:main',
         ],
         'console_scripts': [
             'godhand-cli = godhand.cli:main',
